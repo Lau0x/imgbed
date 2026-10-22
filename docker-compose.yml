@@ -1,10 +1,10 @@
 services:
-  imgbed:
-    image: ghcr.io/lau0x/imgbed:latest
-    container_name: imgbed
+  easyimage-go:
+    image: ghcr.io/lau0x/easyimage-go:latest
+    container_name: easyimage-go
     restart: unless-stopped
     # 容器以这个用户身份读写图片，要和图片目录的属主一致（迁移时用 stat -c '%u:%g' 旧的i目录 查看）
-    user: "${IMGBED_UID:-1000}:${IMGBED_GID:-1000}"
+    user: "${EASYIMAGE_UID:-1000}:${EASYIMAGE_GID:-1000}"
     env_file: .env
     ports:
       # 只监听本机，由宿主机上的 Nginx / OpenResty / Caddy 反向代理并提供 HTTPS

@@ -62,9 +62,9 @@ jobs:
           go-version: "1.24"
       - run: |
           for arch in amd64 arm64; do
-            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o dist/imgbed-linux-$arch .
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o dist/easyimage-go-linux-$arch .
           done
-          (cd dist && sha256sum imgbed-linux-* > SHA256SUMS)
+          (cd dist && sha256sum easyimage-go-linux-* > SHA256SUMS)
       - run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

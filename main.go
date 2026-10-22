@@ -1,4 +1,4 @@
-// imgbed 是 EasyImage 的替代品：不依赖 PHP，沿用原有的 /i/年/月/日/文件名 目录结构和上传 API。
+// easyimage-go 是 EasyImage 的替代品：不依赖 PHP，沿用原有的 /i/年/月/日/文件名 目录结构和上传 API。
 package main
 
 import (
@@ -50,7 +50,7 @@ func envOr(key, def string) string {
 
 // healthcheck 供 Docker HEALTHCHECK 使用：镜像里没有 curl，用程序自己请求 /healthz
 func healthcheck() {
-	host, port, err := net.SplitHostPort(envOr("IMGBED_LISTEN", "127.0.0.1:18321"))
+	host, port, err := net.SplitHostPort(envOr("EASYIMAGE_LISTEN", "127.0.0.1:18321"))
 	if err != nil {
 		os.Exit(1)
 	}
@@ -72,16 +72,16 @@ func main() {
 	var cfg config
 	var maxMB int64
 	var trusted string
-	defaultMB, err := strconv.ParseInt(envOr("IMGBED_MAX_MB", "10"), 10, 64)
+	defaultMB, err := strconv.ParseInt(envOr("EASYIMAGE_MAX_MB", "10"), 10, 64)
 	if err != nil {
-		log.Fatal("IMGBED_MAX_MB 必须是整数")
+		log.Fatal("EASYIMAGE_MAX_MB 必须是整数")
 	}
-	flag.StringVar(&cfg.listen, "listen", envOr("IMGBED_LISTEN", "127.0.0.1:18321"), "监听地址（IMGBED_LISTEN）")
-	flag.StringVar(&cfg.imagesDir, "images", envOr("IMGBED_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（IMGBED_IMAGES）")
-	flag.StringVar(&cfg.trashDir, "trash", envOr("IMGBED_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（IMGBED_TRASH）")
-	flag.StringVar(&cfg.baseURL, "base", envOr("IMGBED_BASE", ""), "图床网址，例如 https://img.example.com（IMGBED_BASE）")
-	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限，单位 MB（IMGBED_MAX_MB）")
-	flag.StringVar(&trusted, "trusted-proxies", envOr("IMGBED_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（IMGBED_TRUSTED_PROXIES）")
+	flag.StringVar(&cfg.listen, "listen", envOr("EASYIMAGE_LISTEN", "127.0.0.1:18321"), "监听地址（EASYIMAGE_LISTEN）")
+	flag.StringVar(&cfg.imagesDir, "images", envOr("EASYIMAGE_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（EASYIMAGE_IMAGES）")
+	flag.StringVar(&cfg.trashDir, "trash", envOr("EASYIMAGE_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（EASYIMAGE_TRASH）")
+	flag.StringVar(&cfg.baseURL, "base", envOr("EASYIMAGE_BASE", ""), "图床网址，例如 https://img.example.com（EASYIMAGE_BASE）")
+	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限，单位 MB（EASYIMAGE_MAX_MB）")
+	flag.StringVar(&trusted, "trusted-proxies", envOr("EASYIMAGE_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（EASYIMAGE_TRUSTED_PROXIES）")
 	flag.Parse()
 
 	for _, s := range strings.Split(trusted, ",") {
@@ -95,9 +95,9 @@ func main() {
 		cfg.trusted = append(cfg.trusted, n)
 	}
 
-	cfg.password = os.Getenv("IMGBED_PASSWORD")
-	cfg.secret = []byte(os.Getenv("IMGBED_SECRET"))
-	for _, t := range strings.Split(os.Getenv("IMGBED_TOKENS"), ",") {
+	cfg.password = os.Getenv("EASYIMAGE_PASSWORD")
+	cfg.secret = []byte(os.Getenv("EASYIMAGE_SECRET"))
+	for _, t := range strings.Split(os.Getenv("EASYIMAGE_TOKENS"), ",") {
 		if t = strings.TrimSpace(t); t != "" {
 			cfg.tokens = append(cfg.tokens, t)
 		}
@@ -106,13 +106,13 @@ func main() {
 	cfg.baseURL = strings.TrimRight(cfg.baseURL, "/")
 
 	if cfg.imagesDir == "" || cfg.baseURL == "" {
-		log.Fatal("必须指定图片目录（-images / IMGBED_IMAGES）和网址（-base / IMGBED_BASE）")
+		log.Fatal("必须指定图片目录（-images / EASYIMAGE_IMAGES）和网址（-base / EASYIMAGE_BASE）")
 	}
 	if len(cfg.password) < 8 {
-		log.Fatal("环境变量 IMGBED_PASSWORD 至少 8 位")
+		log.Fatal("环境变量 EASYIMAGE_PASSWORD 至少 8 位")
 	}
 	if len(cfg.secret) < 32 {
-		log.Fatal("环境变量 IMGBED_SECRET 至少 32 个字符")
+		log.Fatal("环境变量 EASYIMAGE_SECRET 至少 32 个字符")
 	}
 	u, err := url.Parse(cfg.baseURL)
 	if err != nil || u.Host == "" {
@@ -147,7 +147,7 @@ func main() {
 		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
-	log.Printf("imgbed 监听 %s，图片目录 %s，API Token %d 个", cfg.listen, cfg.imagesDir, len(cfg.tokens))
+	log.Printf("easyimage-go 监听 %s，图片目录 %s，API Token %d 个", cfg.listen, cfg.imagesDir, len(cfg.tokens))
 	log.Fatal(srv.ListenAndServe())
 }
 

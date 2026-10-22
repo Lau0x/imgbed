@@ -10,11 +10,11 @@ J="$W/cookies.txt"
 TOKEN=1c17b11693cb5ec63859b091c5b9c1b2
 FAILS=0
 
-(cd "$ROOT" && CGO_ENABLED=0 go build -o "$W/imgbed" . && go run ./test/fixtures "$W") || exit 1
+(cd "$ROOT" && CGO_ENABLED=0 go build -o "$W/easyimage-go" . && go run ./test/fixtures "$W") || exit 1
 
-IMGBED_PASSWORD=testpass123 IMGBED_SECRET=0123456789abcdef0123456789abcdef IMGBED_TOKENS=$TOKEN \
-IMGBED_LISTEN=127.0.0.1:$PORT IMGBED_IMAGES="$W/site/i" IMGBED_BASE="$B" \
-  "$W/imgbed" > "$W/server.log" 2>&1 &
+EASYIMAGE_PASSWORD=testpass123 EASYIMAGE_SECRET=0123456789abcdef0123456789abcdef EASYIMAGE_TOKENS=$TOKEN \
+EASYIMAGE_LISTEN=127.0.0.1:$PORT EASYIMAGE_IMAGES="$W/site/i" EASYIMAGE_BASE="$B" \
+  "$W/easyimage-go" > "$W/server.log" 2>&1 &
 PID=$!
 trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null; rm -rf "$W"' EXIT
 for _ in $(seq 50); do curl -s "$B/healthz" >/dev/null && break; sleep 0.1; done
@@ -35,9 +35,9 @@ check "Range 请求" "$(code -H 'Range: bytes=0-9' $B/i/2024/05/03/old123.jpg)" 
 
 echo "== 安全 =="
 check "残留 shell.php 不输出" "$(code $B/i/2024/05/03/shell.php)" 404
-check "路径穿越 /i/../" "$(code -L --path-as-is $B/i/../../imgbed)" 404
-check "编码穿越 %2e%2e" "$(code -L --path-as-is "$B/i/%2e%2e/%2e%2e/imgbed")" 404
-check "编码穿越 ..%2f" "$(code -L --path-as-is "$B/i/2024/..%2f..%2f..%2fimgbed")" 404
+check "路径穿越 /i/../" "$(code -L --path-as-is $B/i/../../easyimage-go)" 404
+check "编码穿越 %2e%2e" "$(code -L --path-as-is "$B/i/%2e%2e/%2e%2e/easyimage-go")" 404
+check "编码穿越 ..%2f" "$(code -L --path-as-is "$B/i/2024/..%2f..%2f..%2feasyimage-go")" 404
 check "目录不列出" "$(code $B/i/2024/05/03/)" 404
 check "thumb.php 不能跳到外站" "$(code "$B/app/thumb.php?img=//evil.com/a.jpg")" 404
 check "未登录访问首页跳登录" "$(code $B/)" 303
@@ -49,7 +49,7 @@ check "无 Origin 登录被拒" "$(code -d password=testpass123 $B/login)" 403
 check "错误密码" "$(code -H "$O" -d password=wrong $B/login)" 401
 check "正确密码" "$(code -c $J -H "$O" -d password=testpass123 $B/login)" 303
 check "登录后首页" "$(code -b $J $B/)" 200
-check "伪造 Cookie" "$(code -b 'imgbed_session=9999999999.deadbeef' $B/)" 303
+check "伪造 Cookie" "$(code -b 'easyimage_session=9999999999.deadbeef' $B/)" 303
 
 echo "== 网页上传 =="
 R=$(curl -s -b $J -H "$O" -F image=@$W/fixtures/a.png $B/upload)
@@ -81,12 +81,12 @@ echo "== 管理后台 =="
 check "管理页" "$(code -b $J $B/admin)" 200
 check "列出旧图" "$(curl -s -b $J "$B/admin?d=2024/05/03" | grep -c 'class="name">old123.jpg')" 1
 check "不列出 shell.php" "$(curl -s -b $J "$B/admin?d=2024/05/03" | grep -c shell.php)" 0
-check "后台删除拒绝穿越路径" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" -d 'f=../../imgbed' $B/admin/delete | grep -o 'msg=[^&]*')" "msg=%E8%B7%AF%E5%BE%84%E6%97%A0%E6%95%88"
+check "后台删除拒绝穿越路径" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" -d 'f=../../easyimage-go' $B/admin/delete | grep -o 'msg=[^&]*')" "msg=%E8%B7%AF%E5%BE%84%E6%97%A0%E6%95%88"
 REL=${URL#$B/i/}
 curl -s -o /dev/null -b $J -H "$O" -d "f=$REL" $B/admin/delete
 check "后台删除新图" "$(code "$URL")" 404
 check "删除的图在回收目录" "$(test -f "$W/site/i-trash/$REL" && echo yes)" yes
-check "程序文件未受影响" "$(test -f "$W/imgbed" && echo yes)" yes
+check "程序文件未受影响" "$(test -f "$W/easyimage-go" && echo yes)" yes
 
 echo "== 登录限流 =="
 for _ in 1 2 3 4 5; do curl -s -o /dev/null -H "$O" -H 'X-Real-IP: 203.0.113.1' -d password=wrong $B/login; done
@@ -94,7 +94,7 @@ check "连续失败后锁定该 IP" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.1' 
 check "其他 IP 不受影响" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.2' -d password=testpass123 $B/login)" 303
 
 echo "== 健康检查 =="
-check "healthcheck 子命令" "$(IMGBED_LISTEN=127.0.0.1:$PORT "$W/imgbed" healthcheck; echo $?)" 0
+check "healthcheck 子命令" "$(EASYIMAGE_LISTEN=127.0.0.1:$PORT "$W/easyimage-go" healthcheck; echo $?)" 0
 
 echo
 if [ "$FAILS" -gt 0 ]; then
