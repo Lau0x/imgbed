@@ -59,19 +59,6 @@ func (a *app) checkPassword(pw string) bool {
 	return subtle.ConstantTimeCompare(x[:], y[:]) == 1
 }
 
-func (a *app) validToken(t string) bool {
-	if t == "" {
-		return false
-	}
-	ok := false
-	for _, want := range a.cfg.tokens {
-		if subtle.ConstantTimeCompare([]byte(t), []byte(want)) == 1 {
-			ok = true
-		}
-	}
-	return ok
-}
-
 // sameOrigin 防 CSRF：带 Cookie 的写操作必须来自本站页面
 func sameOrigin(r *http.Request) bool {
 	o := r.Header.Get("Origin")

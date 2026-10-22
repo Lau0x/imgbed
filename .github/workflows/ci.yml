@@ -13,8 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
-      - run: go vet ./...
+          go-version: "1.26"
+      - run: go vet -tags nodynamic ./...
       - run: bash test/e2e.sh
 
   docker:
@@ -59,10 +59,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.26"
       - run: |
           for arch in amd64 arm64; do
-            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o dist/easyimage-go-linux-$arch .
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -tags nodynamic -trimpath -ldflags="-s -w" -o dist/easyimage-go-linux-$arch .
           done
           (cd dist && sha256sum easyimage-go-linux-* > SHA256SUMS)
       - run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes

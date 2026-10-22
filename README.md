@@ -2,10 +2,13 @@
 
 一个不依赖 PHP 的自托管图床，可以直接替换 [EasyImage 2.0](https://github.com/icret/EasyImages2.0)：沿用原来的图片目录，**已经贴出去的图片链接一个都不会断**，PicGo 等上传工具也不用改配置。
 
-- 单个可执行文件，Docker 镜像不到 20 MB，不需要数据库、PHP 或任何运行环境
+- 单个可执行文件，Docker 镜像约 25 MB，不需要数据库、PHP 或任何运行环境
 - 网页上传：点击、拖拽、粘贴，一键复制链接 / Markdown / HTML / BBCode
-- 后台按日期浏览、删除图片，删除的图片进回收目录，误删可以找回
 - 兼容 EasyImage 的上传 API（`/api/index.php`，字段 `image` + `token`）和返回格式
+- API Token 管理：有效期、禁用、按 token 查看和批量删除上传的图片，可一键导入 EasyImage 的 token
+- 上传时压缩、转 WebP、加文字水印（支持中文字体），按 EXIF 自动转正照片方向
+- 防盗链：Referer 白名单，支持通配子域名
+- 后台按日期浏览、删除图片，删除的图片进回收目录，误删可以找回
 
 > 本项目是社区独立实现的替代品，与 EasyImage 及其作者 [icret](https://github.com/icret) 没有任何关系，也不是官方的 Go 版本。名字里的 EasyImage 只用来说明它兼容的对象，代码没有复用 EasyImage 的任何部分。
 
@@ -73,15 +76,15 @@ find <站点根目录>/i -type f ! -iregex '.*\.\(jpe?g\|png\|gif\|webp\|bmp\|ic
 
 easyimage-go 部署后不会执行、也不会输出这些文件，但在宿主机上它们仍然存在。
 
-### 3. 导出原来的 API Token
+### 3. 准备好原来的 API Token
 
-如果你在用 PicGo、ShareX 等工具通过 API 上传，把原来的 token 导出来，后面填进 `EASYIMAGE_TOKENS`，工具那边就什么都不用改：
+如果你在用 PicGo、ShareX 等工具通过 API 上传，先把原来的 token 文件内容复制出来，第 7 步要粘贴到新后台里：
 
 ```bash
-grep -oE "'[0-9a-f]{32}'" <站点根目录>/config/api_key.php | tr -d "'" | paste -sd,
+cat <站点根目录>/config/api_key.php
 ```
 
-这条命令会导出所有 token，包括已经过期的。easyimage-go 不区分过期时间，只保留你还在用的就行。
+导入后，原来的 ID、添加时间和有效期都会保留，工具那边什么都不用改。
 
 ### 4. 查看图片目录的属主
 
@@ -107,12 +110,15 @@ curl -fsSL https://raw.githubusercontent.com/Lau0x/easyimage-go/main/.env.exampl
     volumes:
       - <站点根目录>/i:/data/i
       - ./i-trash:/data/i-trash
+      - ./config:/data/config
 ```
 
-编辑 `.env`：`EASYIMAGE_BASE` 填原来的图床网址（比如 `https://img.example.com`），`EASYIMAGE_TOKENS` 填第 3 步导出的 token，`EASYIMAGE_UID` / `EASYIMAGE_GID` 填第 4 步看到的数字，再填好密码和密钥。然后：
+`config` 目录保存后台设置、token 和上传记录，一定要挂载出来，否则重建容器后会丢失。
+
+编辑 `.env`：`EASYIMAGE_BASE` 填原来的图床网址（比如 `https://img.example.com`），`EASYIMAGE_UID` / `EASYIMAGE_GID` 填第 4 步看到的数字，再填好密码和密钥。`EASYIMAGE_TOKENS` 可以留空。然后：
 
 ```bash
-mkdir -p i-trash && sudo chown <第4步的数字> i-trash
+mkdir -p i-trash config && sudo chown <第4步的数字> i-trash config
 chmod 600 .env
 docker compose up -d
 curl -s http://127.0.0.1:18321/healthz     # 输出 ok 就是正常
@@ -125,7 +131,8 @@ curl -s http://127.0.0.1:18321/healthz     # 输出 ok 就是正常
 ```bash
 sudo install -m 755 easyimage-go-linux-amd64 /usr/local/bin/easyimage-go
 sudo cp .env.example /etc/easyimage-go.env && sudo chmod 600 /etc/easyimage-go.env   # 然后编辑填好
-sudo mkdir -p <站点根目录>/i-trash && sudo chown <第4步的数字> <站点根目录>/i-trash
+sudo mkdir -p <站点根目录>/i-trash <站点根目录>/easyimage-config
+sudo chown <第4步的数字> <站点根目录>/i-trash <站点根目录>/easyimage-config
 ```
 
 把 [deploy/easyimage-go.service](deploy/easyimage-go.service) 复制到 `/etc/systemd/system/`，把里面的路径改成你的 `<站点根目录>`，`User` / `Group` 改成图片目录的属主。然后：
@@ -157,6 +164,8 @@ curl -s -F image=@test.png -F token=<你的token> https://img.example.com/api/in
 
 再打开 `https://img.example.com` 用新密码登录，试一下网页上传和后台管理。
 
+然后进入「设置 → API Token → 从 EasyImage 导入」，粘贴第 3 步复制的 `api_key.php` 内容并导入，再用 PicGo 传一张图确认。压缩、WebP、水印、防盗链也在「设置」里按需开启。
+
 ### 8. 清理
 
 确认一切正常后：
@@ -174,8 +183,10 @@ curl -s -F image=@test.png -F token=<你的token> https://img.example.com/api/in
 | `thumb.php?img=...` 缩略图链接 | 跳转到原图 |
 | `/api/index.php` 上传 | 不变，返回格式一致 |
 | 原来的删除链接 `del.php?hash=...` | **失效**，新上传的图片会返回新的删除链接 |
-| 原图保护 `hide.php`、水印、压缩、格式转换、鉴黄 | 不支持 |
-| 多用户、按 token 分目录、token 过期时间 | 不支持，所有 token 权限相同、长期有效 |
+| API Token（ID、有效期、禁用） | 支持，可从 `api_key.php` 一键导入 |
+| 压缩、转 WebP、文字水印、防盗链 | 支持，在后台「设置」里开启 |
+| 原图保护 `hide.php?key=...` 链接 | **不支持**，开过这个功能的旧链接会失效 |
+| 图片水印、鉴黄、FTP 同步、游客上传、多用户 | 不支持 |
 | 上传格式 | 新上传只接受 jpg / png / gif / webp；旧的 bmp / ico / svg 等仍可访问 |
 
 ## 反向代理
@@ -205,6 +216,38 @@ location / { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; pro
 - **`Host` 和 `X-Real-IP` 两行不能少**：前者用于防跨站提交的来源校验，后者用于登录限流按真实 IP 计数。
 - **Caddy**：`reverse_proxy 127.0.0.1:18321` 即可，Caddy 默认会传递 Host。需要额外加 `header_up X-Real-IP {remote_host}`。
 
+### 防盗链
+
+防盗链由程序根据 `Referer` 判断，而上面的推荐配置让 Nginx 直接返回 `/i/` 下的图片，不经过程序，所以**在后台开启防盗链后，要把 `/i/` 也交给程序处理**：
+
+```nginx
+location ^~ /i/ {
+    proxy_pass http://127.0.0.1:18321;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+程序同样只输出图片扩展名的文件，不执行任何脚本。开启后响应会带 `Vary: Referer`；如果前面还有 CDN，需要确认 CDN 按 Referer 区分缓存，或者在 CDN 上配置防盗链。
+
+## 后台设置
+
+登录后点右上角「设置」，修改后立即生效，保存在配置目录的 `settings.json` 里。
+
+| 分类 | 说明 |
+| --- | --- |
+| 上传 | 单张大小上限。调大时 Nginx 的 `client_max_body_size` 也要跟着改 |
+| 压缩与格式 | 压缩质量推荐 80–90，肉眼基本看不出差别；可以把 JPG / PNG 统一转成 WebP。动图和超过 4000 万像素的图片原样保存；处理后反而变大时也保留原图 |
+| 水印 | 文字、九宫格位置、字号（占图片短边的百分比）、颜色、不透明度，带实时预览。内置字体只有英文，中文水印需要上传字体（如思源黑体 Noto Sans SC） |
+| 防盗链 | Referer 白名单，`*.example.com` 匹配所有子域名；可选是否允许没有 Referer 的访问 |
+| API Token | 新增、修改有效期、禁用、删除；查看某个 token 上传的图片，一键删除它的全部上传；从 EasyImage 的 `api_key.php` 导入 |
+
+几点说明：
+
+- 压缩、转格式、水印只对新上传的图片生效，不会改动已有图片。
+- 重新编码会去掉照片的 EXIF 信息（包括拍摄地点），方向会先按 EXIF 转正。
+- 上传数量按配置目录里的 `uploads.log` 统计，只包含本程序上线后的上传。
+
 ## 上传工具配置
 
 **PicGo**：安装"自定义 Web 图床"插件（web-uploader），然后这样填：
@@ -232,7 +275,9 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 {"result":"success","code":200,"url":"https://img.example.com/i/2026/10/22/k88e7pabcd.jpg","srcName":"photo","thumb":"...","del":"https://img.example.com/del?f=...&s=...","message":"success"}
 ```
 
-失败时 `result` 为 `failed`，`code` 含义：`202` token 错误，`204` 没有文件，`400` 格式不支持或文件过大，`500` 服务器保存失败。
+通过 API 上传时会多返回 `"id"`，即 token 的 ID，和 EasyImage 一致。
+
+失败时 `result` 为 `failed`，`code` 含义：`202` token 错误、已过期或已禁用（具体原因见 `message`），`204` 没有文件，`400` 格式不支持或文件过大，`500` 服务器保存失败。
 
 ## 配置项
 
@@ -243,10 +288,11 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 | `EASYIMAGE_BASE` | `-base` | 无，必填 | 图床对外网址，返回的链接以它开头 |
 | `EASYIMAGE_PASSWORD` | 无 | 无，必填 | 后台密码，至少 8 位 |
 | `EASYIMAGE_SECRET` | 无 | 无，必填 | 签名密钥，至少 32 个字符。更换后所有人需要重新登录，旧的删除链接失效 |
-| `EASYIMAGE_TOKENS` | 无 | 空 | API token，逗号分隔。留空则关闭 API 上传 |
+| `EASYIMAGE_TOKENS` | 无 | 空 | API token，逗号分隔。只在首次启动时导入后台，之后在后台管理 |
 | `EASYIMAGE_IMAGES` | `-images` | Docker 内为 `/data/i` | 图片目录，对应网址里的 `/i/` |
 | `EASYIMAGE_TRASH` | `-trash` | 图片目录旁的 `i-trash` | 删除的图片移到这里 |
-| `EASYIMAGE_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）。调大时 Nginx 的 `client_max_body_size` 也要跟着改 |
+| `EASYIMAGE_CONFIG_DIR` | `-config-dir` | 图片目录旁的 `easyimage-config`，Docker 内为 `/data/config` | 后台设置、token、上传记录和水印字体 |
+| `EASYIMAGE_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
 | `EASYIMAGE_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
 | `EASYIMAGE_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |
 
@@ -258,17 +304,18 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 - **登录**：登录状态用 HMAC 签名的 Cookie（HttpOnly、SameSite=Lax、HTTPS 下带 Secure）；同一 IP 15 分钟内连续输错 5 次锁定
 - **防跨站提交**：带 Cookie 的写操作都会校验 `Origin` / `Referer`
 - **删除**：API 返回的删除链接有签名，打开后只显示确认页，点确认才删；删除是移到回收目录
+- **超大图片**：超过 4000 万像素的图片不解码处理，最多同时处理 2 张，避免被恶意大图撑爆内存
 - **最小权限**：Docker 镜像基于 distroless，没有 shell，以非 root 运行；systemd 配置启用了 `ProtectSystem=strict` 等沙箱选项，只开放图片目录的写权限
 
 发现安全问题请通过 GitHub 的 [Security Advisories](https://github.com/Lau0x/easyimage-go/security/advisories/new) 私下报告，不要直接开 issue。
 
 ## 从源码构建
 
-需要 Go 1.18 或以上版本，只用标准库，没有第三方依赖。
+需要 Go 1.26 或以上版本。依赖只有 `golang.org/x/image`（字体渲染）和 [gen2brain/webp](https://github.com/gen2brain/webp)（WebP 编码，由官方 libwebp 转译成的纯 Go 代码，不需要 CGO）。
 
 ```bash
 git clone https://github.com/Lau0x/easyimage-go.git && cd easyimage-go
-CGO_ENABLED=0 go build -o easyimage-go .
+CGO_ENABLED=0 go build -tags nodynamic -o easyimage-go .
 bash test/e2e.sh          # 端到端测试：模拟 EasyImage 站点，检查兼容性和安全项
 docker build -t easyimage-go .  # 构建镜像
 ```

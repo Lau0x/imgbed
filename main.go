@@ -15,7 +15,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/image/font/opentype"
 )
 
 //go:embed templates/*.html
@@ -25,8 +28,8 @@ type config struct {
 	listen    string
 	imagesDir string // 对应网址中的 /i/
 	trashDir  string
+	configDir string // settings.json、上传日志和水印字体放在这里
 	baseURL   string
-	maxBytes  int64
 	password  string
 	secret    []byte
 	tokens    []string
@@ -38,6 +41,13 @@ type app struct {
 	tmpl    *template.Template
 	limiter *loginLimiter
 	secure  bool
+	store   *settingsStore
+	logMu   sync.Mutex
+	procSem chan struct{} // 限制同时处理的图片数量，避免内存占用过高
+
+	fontMu     sync.RWMutex
+	font       *opentype.Font
+	fontCustom bool
 }
 
 // envOr 让每个命令行参数都能用环境变量设置，方便 Docker 部署
@@ -79,8 +89,9 @@ func main() {
 	flag.StringVar(&cfg.listen, "listen", envOr("EASYIMAGE_LISTEN", "127.0.0.1:18321"), "监听地址（EASYIMAGE_LISTEN）")
 	flag.StringVar(&cfg.imagesDir, "images", envOr("EASYIMAGE_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（EASYIMAGE_IMAGES）")
 	flag.StringVar(&cfg.trashDir, "trash", envOr("EASYIMAGE_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（EASYIMAGE_TRASH）")
+	flag.StringVar(&cfg.configDir, "config-dir", envOr("EASYIMAGE_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 easyimage-config（EASYIMAGE_CONFIG_DIR）")
 	flag.StringVar(&cfg.baseURL, "base", envOr("EASYIMAGE_BASE", ""), "图床网址，例如 https://img.example.com（EASYIMAGE_BASE）")
-	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限，单位 MB（EASYIMAGE_MAX_MB）")
+	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（EASYIMAGE_MAX_MB）")
 	flag.StringVar(&trusted, "trusted-proxies", envOr("EASYIMAGE_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（EASYIMAGE_TRUSTED_PROXIES）")
 	flag.Parse()
 
@@ -102,7 +113,6 @@ func main() {
 			cfg.tokens = append(cfg.tokens, t)
 		}
 	}
-	cfg.maxBytes = maxMB << 20
 	cfg.baseURL = strings.TrimRight(cfg.baseURL, "/")
 
 	if cfg.imagesDir == "" || cfg.baseURL == "" {
@@ -132,13 +142,38 @@ func main() {
 	if cfg.trashDir == "" {
 		cfg.trashDir = filepath.Join(filepath.Dir(cfg.imagesDir), "i-trash")
 	}
+	if cfg.configDir == "" {
+		cfg.configDir = filepath.Join(filepath.Dir(cfg.imagesDir), "easyimage-config")
+	}
+	if err := os.MkdirAll(cfg.configDir, 0o700); err != nil {
+		log.Fatalf("创建配置目录失败：%v", err)
+	}
+
+	defaults := Settings{
+		MaxMB: maxMB, Quality: 85, WaterText: u.Host, WaterPos: 9, WaterSize: 4,
+		WaterColor: "#ffffff", WaterOpacity: 60, AllowEmptyRef: true,
+	}
+	// 首次启动时把环境变量里的 token 导入后台，之后统一在后台管理
+	for i, t := range cfg.tokens {
+		defaults.Tokens = append(defaults.Tokens, Token{ID: i + 1, Value: t, Created: time.Now().Unix()})
+	}
+	store, first, err := loadSettings(filepath.Join(cfg.configDir, "settings.json"), defaults)
+	if err != nil {
+		log.Fatalf("读取配置失败：%v", err)
+	}
+	if !first && len(cfg.tokens) > 0 {
+		log.Printf("提示：配置已存在，EASYIMAGE_TOKENS 只在首次启动时导入，请在后台管理 token")
+	}
 
 	a := &app{
 		cfg:     cfg,
-		tmpl:    template.Must(template.ParseFS(templateFS, "templates/*.html")),
+		tmpl:    template.Must(template.New("").Funcs(templateFuncs).ParseFS(templateFS, "templates/*.html")),
 		limiter: newLoginLimiter(),
 		secure:  u.Scheme == "https",
+		store:   store,
+		procSem: make(chan struct{}, 2),
 	}
+	a.loadFont()
 	srv := &http.Server{
 		Addr:              cfg.listen,
 		Handler:           a.routes(),
@@ -147,7 +182,7 @@ func main() {
 		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
-	log.Printf("easyimage-go 监听 %s，图片目录 %s，API Token %d 个", cfg.listen, cfg.imagesDir, len(cfg.tokens))
+	log.Printf("easyimage-go 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -180,6 +215,12 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("/admin/index.php", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin", http.StatusMovedPermanently)
 	})
+	mux.HandleFunc("/admin/settings", a.handleSettings)
+	mux.HandleFunc("/admin/settings/preview", a.handleWatermarkPreview)
+	mux.HandleFunc("/admin/font", a.handleFont)
+	mux.HandleFunc("/admin/tokens", a.handleTokens)
+	mux.HandleFunc("/admin/tokens/import", a.handleTokenImport)
+	mux.HandleFunc("/admin/tokens/files", a.handleTokenFiles)
 	mux.HandleFunc("/del", a.handleSignedDelete)
 	mux.HandleFunc("/app/thumb.php", a.handleThumbRedirect)
 	mux.HandleFunc("/application/thumb.php", a.handleThumbRedirect)
@@ -218,6 +259,6 @@ func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.render(w, http.StatusOK, "index.html", map[string]interface{}{
-		"MaxMB": a.cfg.maxBytes >> 20,
+		"MaxMB": a.store.get().MaxMB,
 	})
 }

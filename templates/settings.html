@@ -1,0 +1,226 @@
+{{template "head" "设置"}}
+{{template "nav"}}
+<style>
+.layout{display:grid;grid-template-columns:150px 1fr;gap:20px;align-items:start}
+.side{position:sticky;top:16px;padding:10px}
+.side a{display:block;padding:4px 8px;border-radius:4px;color:var(--text)}
+.side a:hover{background:var(--bg)}
+section.card{margin-bottom:20px}
+section h3{margin:0 0 4px}
+section .desc{margin:0 0 16px}
+.field{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.field>label:first-child{color:var(--muted);font-size:14px}
+.field input[type=number]{width:110px}
+.field input[type=number],.field select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+textarea{width:100%;min-height:90px;font-size:13px}
+.check{display:flex;gap:8px;align-items:center}
+.warn{color:var(--danger);font-size:13px}
+.preview{max-width:100%;border-radius:6px;border:1px solid var(--line);display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-weight:500;white-space:nowrap}
+td.tok input{font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:4px 6px;min-width:200px}
+.ops{display:flex;gap:6px;flex-wrap:wrap}
+.ops form{margin:0}
+.ops button,.ops a.btn{font-size:12px;padding:2px 8px}
+.st-ok{color:var(--ok)}.st-bad{color:var(--danger)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row input[type=text]{width:auto;flex:1;min-width:180px}
+code{background:var(--bg);padding:2px 6px;border-radius:4px;font-size:13px}
+@media (max-width:720px){.layout{grid-template-columns:1fr}.side{position:static;display:flex;flex-wrap:wrap}.field{grid-template-columns:1fr;gap:4px}.tablewrap{overflow-x:auto}}
+</style>
+<main>
+  {{with .Msg}}<div class="msg">{{.}}</div>{{end}}
+  <div class="layout">
+    <nav class="side card">
+      <a href="#upload">上传</a>
+      <a href="#process">压缩与格式</a>
+      <a href="#watermark">水印</a>
+      <a href="#hotlink">防盗链</a>
+      <a href="#tokens">API Token</a>
+    </nav>
+    <div>
+      <form method="post" action="/admin/settings" id="settings-form">
+        <input type="hidden" name="anchor" value="upload">
+
+        <section class="card" id="upload">
+          <h3>上传</h3>
+          <div class="field">
+            <label for="max_mb">单张大小上限</label>
+            <div><input type="number" id="max_mb" name="max_mb" min="1" max="500" value="{{.S.MaxMB}}"> MB
+              <div class="muted">调大后，反向代理的 <code>client_max_body_size</code> 也要跟着调大，否则大图会被拦在 Nginx 那一层。</div></div>
+          </div>
+          <button class="primary" type="submit" data-anchor="upload">保存</button>
+        </section>
+
+        <section class="card" id="process">
+          <h3>压缩与格式</h3>
+          <p class="desc muted">只处理新上传的图片。动图（GIF、动态 WebP）和超过 4000 万像素的图片原样保存；处理后反而变大时也保留原图。</p>
+          <div class="field">
+            <label>压缩</label>
+            <label class="check"><input type="checkbox" name="compress"{{if .S.Compress}} checked{{end}}> 上传时压缩图片</label>
+          </div>
+          <div class="field">
+            <label for="quality">压缩质量</label>
+            <div><input type="number" id="quality" name="quality" min="40" max="100" value="{{.S.Quality}}">
+              <div class="muted">推荐 80–90：肉眼基本看不出差别，体积通常能减少一半左右。数值越高画质越好、文件越大。</div></div>
+          </div>
+          <div class="field">
+            <label for="convert">转换格式</label>
+            <div><select id="convert" name="convert">
+                <option value=""{{if eq .S.Convert ""}} selected{{end}}>保持原格式</option>
+                <option value="webp"{{if eq .S.Convert "webp"}} selected{{end}}>转为 WebP</option>
+              </select>
+              <div class="muted">WebP 体积比 JPG / PNG 小很多，主流浏览器都支持。转换后链接的扩展名会变成 .webp。没开压缩时按质量 92 转换。</div></div>
+          </div>
+          <div class="field">
+            <label></label>
+            <div class="muted">重新编码会去掉照片里的 EXIF 信息（包括拍摄地点），方向会先按 EXIF 自动转正。</div>
+          </div>
+          <button class="primary" type="submit" data-anchor="process">保存</button>
+        </section>
+
+        <section class="card" id="watermark">
+          <h3>水印</h3>
+          <div class="field">
+            <label>文字水印</label>
+            <label class="check"><input type="checkbox" name="watermark"{{if .S.Watermark}} checked{{end}}> 给新上传的图片加水印</label>
+          </div>
+          <div class="field">
+            <label for="water_text">水印文字</label>
+            <div><input type="text" id="water_text" name="water_text" maxlength="60" value="{{.S.WaterText}}">
+              {{with .Missing}}<div class="warn">当前字体不包含这些字符：{{.}}，加水印时会显示成方框。请在下面上传一个中文字体。</div>{{end}}</div>
+          </div>
+          <div class="field">
+            <label for="water_pos">位置</label>
+            <select id="water_pos" name="water_pos">
+              {{range .Positions}}<option value="{{.V}}"{{if eq .V $.S.WaterPos}} selected{{end}}>{{.L}}</option>{{end}}
+            </select>
+          </div>
+          <div class="field">
+            <label for="water_size">字号</label>
+            <div><input type="number" id="water_size" name="water_size" min="1" max="20" value="{{.S.WaterSize}}"> % <span class="muted">占图片短边的比例，大图小图上看起来一样大</span></div>
+          </div>
+          <div class="field">
+            <label for="water_color">颜色</label>
+            <input type="color" id="water_color" name="water_color" value="{{.S.WaterColor}}">
+          </div>
+          <div class="field">
+            <label for="water_opacity">不透明度</label>
+            <div><input type="number" id="water_opacity" name="water_opacity" min="0" max="100" value="{{.S.WaterOpacity}}"> %</div>
+          </div>
+          <div class="field">
+            <label>预览</label>
+            <div><img class="preview" src="/admin/settings/preview?t={{.Now}}" alt="水印预览" width="400" height="225">
+              <div class="muted">按已保存的设置生成，修改后先保存再看。不足 100 像素的小图不加水印。</div></div>
+          </div>
+          <button class="primary" type="submit" data-anchor="watermark">保存</button>
+        </section>
+
+        <section class="card" id="hotlink">
+          <h3>防盗链</h3>
+          <p class="desc muted">开启后，只有本站和白名单里的网站能直接显示图片，其他网站引用会返回 403。</p>
+          <div class="field">
+            <label>防盗链</label>
+            <label class="check"><input type="checkbox" name="hotlink"{{if .S.Hotlink}} checked{{end}}> 开启</label>
+          </div>
+          <div class="field">
+            <label for="allowed_referers">允许的网站</label>
+            <div><textarea id="allowed_referers" name="allowed_referers" placeholder="每行一个域名，例如&#10;blog.example.com&#10;*.example.com">{{.Refs}}</textarea>
+              <div class="muted">本站域名已默认放行。<code>*.example.com</code> 表示 example.com 及其所有子域名。</div></div>
+          </div>
+          <div class="field">
+            <label>直接访问</label>
+            <label class="check"><input type="checkbox" name="allow_empty_referer"{{if .S.AllowEmptyRef}} checked{{end}}> 允许没有来源的访问（在浏览器地址栏直接打开、部分 App 和阅读器）</label>
+          </div>
+          <div class="field">
+            <label></label>
+            <div class="warn">如果按推荐配置让 Nginx / OpenResty 直接返回 /i/ 下的图片，这里的设置不会生效。开启防盗链时，需要把 /i/ 也交给本程序处理，见 README 的"防盗链"一节。</div>
+          </div>
+          <button class="primary" type="submit" data-anchor="hotlink">保存</button>
+        </section>
+      </form>
+
+      <section class="card" id="watermark-font">
+        <h3>水印字体</h3>
+        <p class="desc muted">当前：{{if .CustomFont}}已上传自定义字体{{else}}内置 Go 字体（只包含英文、数字和常用符号）{{end}}。中文水印需要上传中文字体，例如思源黑体（Noto Sans SC），支持 ttf / otf / ttc。</p>
+        <form method="post" action="/admin/font" enctype="multipart/form-data" class="row">
+          <input type="file" name="font" accept=".ttf,.otf,.ttc" required>
+          <button type="submit">上传字体</button>
+        </form>
+        {{if .CustomFont}}
+        <form method="post" action="/admin/font" enctype="multipart/form-data" style="margin-top:10px">
+          <input type="hidden" name="action" value="delete">
+          <button type="submit" class="link">恢复内置字体</button>
+        </form>
+        {{end}}
+      </section>
+
+      <section class="card" id="tokens">
+        <h3>API Token</h3>
+        <p class="desc">API 地址：<code>{{.APIURL}}</code> <span class="muted">POST 上传，字段 <code>image</code>（文件）和 <code>token</code>，与 EasyImage 相同</span></p>
+
+        <form method="get" action="/admin/settings#tokens" class="row" style="margin-bottom:12px">
+          <input type="text" name="q" value="{{.Q}}" placeholder="搜索 Token、备注或 ID">
+          <button type="submit">搜索</button>
+          {{if .Q}}<a href="/admin/settings#tokens">清除</a>{{end}}
+        </form>
+
+        <div class="tablewrap">
+        <table>
+          <thead><tr><th>ID</th><th>Token</th><th>备注</th><th>添加时间</th><th>有效期至</th><th>上传数量</th><th>管理</th></tr></thead>
+          <tbody>
+          {{range .Tokens}}
+            <tr>
+              <td>{{.ID}}</td>
+              <td class="tok"><input type="text" readonly value="{{.Value}}" onfocus="this.select()"></td>
+              <td>{{.Note}}</td>
+              <td>{{date .Created}}</td>
+              <td>{{if eq .Status "已过期"}}<span class="st-bad">已过期</span>{{else if eq .Expires 0}}<span class="st-ok">永久</span>{{else}}<span class="st-ok">{{date .Expires}}</span>{{end}}
+                {{if eq .Status "已禁用"}}<br><span class="st-bad">已禁用</span>{{end}}</td>
+              <td>{{.Uploads}}</td>
+              <td class="ops">
+                <a class="btn" href="/admin/tokens/files?t={{.Value}}">文件</a>
+                <form method="post" action="/admin/tokens"><input type="hidden" name="value" value="{{.Value}}">
+                  {{if .Disabled}}<button name="action" value="enable" type="submit">启用</button>{{else}}<button name="action" value="disable" type="submit">禁用</button>{{end}}</form>
+                <form method="post" action="/admin/tokens" onsubmit="return confirm('删除这个 Token？用它的上传工具会立刻失效，已上传的图片保留。')"><input type="hidden" name="value" value="{{.Value}}">
+                  <button class="danger" name="action" value="delete" type="submit">删除</button></form>
+                <form method="post" action="/admin/tokens" onsubmit="return confirm('删除这个 Token 上传的全部 {{.Uploads}} 张图片？图片会移到回收目录，已贴出去的链接会失效。')"><input type="hidden" name="value" value="{{.Value}}">
+                  <button class="danger" name="action" value="purge" type="submit"{{if eq .Uploads 0}} disabled{{end}}>删除上传</button></form>
+              </td>
+            </tr>
+          {{else}}
+            <tr><td colspan="7" class="muted">{{if .Q}}没有匹配的 Token{{else}}还没有 Token，API 上传处于关闭状态{{end}}</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+        </div>
+        <p class="muted">共 {{.TokenTotal}} 个。上传数量只统计本程序上线后的上传。</p>
+
+        <h4 style="margin:20px 0 8px">增加 / 修改 Token</h4>
+        <form method="post" action="/admin/tokens" class="row">
+          <input type="hidden" name="action" value="add">
+          <input type="text" name="value" value="{{.NewToken}}" required pattern="[A-Za-z0-9]{16,64}" title="16–64 位字母或数字">
+          <input type="text" name="note" placeholder="备注（可选，例如 PicGo）" style="flex:0 1 200px;min-width:140px">
+          <label>有效期 <input type="number" name="days" min="0" max="36500" value="0" style="width:90px"> 天</label>
+          <button class="primary" type="submit">添加</button>
+        </form>
+        <p class="muted">有效期填 0 表示永久。填写已有的 Token 则修改它的有效期，并重新启用。</p>
+
+        <h4 style="margin:20px 0 8px">从 EasyImage 导入</h4>
+        <form method="post" action="/admin/tokens/import">
+          <textarea name="php" placeholder="粘贴原站点 config/api_key.php 的全部内容，会保留原来的 ID、添加时间和有效期"></textarea>
+          <button type="submit" style="margin-top:8px">导入</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+document.querySelectorAll('#settings-form button[data-anchor]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelector('#settings-form input[name=anchor]').value = b.dataset.anchor;
+  });
+});
+</script>
+{{template "foot"}}

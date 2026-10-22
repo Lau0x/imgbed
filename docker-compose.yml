@@ -10,8 +10,9 @@ services:
       # 只监听本机，由宿主机上的 Nginx / OpenResty / Caddy 反向代理并提供 HTTPS
       - "127.0.0.1:18321:18321"
     volumes:
-      # 全新安装：图片存在 ./data/i，删除的图片在 ./data/i-trash
+      # 全新安装：图片存在 ./data/i，删除的图片在 ./data/i-trash，后台设置和 token 在 ./data/config
       - ./data:/data
       # 从 EasyImage 迁移：注释掉上面一行，改成挂载原站点的 i 目录
       # - /原站点根目录/i:/data/i
       # - ./i-trash:/data/i-trash
+      # - ./config:/data/config

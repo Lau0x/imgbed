@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gen2brain/webp"
 )
 
 var (
@@ -33,6 +35,7 @@ type uploadResult struct {
 	SrcName string `json:"srcName,omitempty"`
 	Thumb   string `json:"thumb,omitempty"`
 	Del     string `json:"del,omitempty"`
+	ID      *int   `json:"id,omitempty"`
 	Message string `json:"message"`
 }
 
@@ -80,49 +83,55 @@ func randomName() string {
 	return string(out)
 }
 
-// saveImage 校验并保存图片，返回相对 /i/ 的路径，例如 2026/10/22/k88e7pabcd.jpg
-func (a *app) saveImage(fh *multipart.FileHeader) (string, error) {
-	if fh.Size > a.cfg.maxBytes {
-		return "", errTooLarge
+func (a *app) maxBytes() int64 {
+	return a.store.get().MaxMB << 20
+}
+
+// saveImage 校验、处理并保存图片，返回相对 /i/ 的路径（例如 2026/10/22/k88e7pabcd.jpg）和最终大小
+func (a *app) saveImage(fh *multipart.FileHeader) (string, int64, error) {
+	s := a.store.get()
+	max := s.MaxMB << 20
+	if fh.Size > max {
+		return "", 0, errTooLarge
 	}
 	src, err := fh.Open()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer src.Close()
+	data, err := io.ReadAll(io.LimitReader(src, max+1))
+	if err != nil {
+		return "", 0, err
+	}
+	if int64(len(data)) > max {
+		return "", 0, errTooLarge
+	}
 
-	head := make([]byte, 32)
-	n, _ := io.ReadFull(src, head)
-	ext := sniffImage(head[:n])
+	ext := sniffImage(data)
 	if ext == "" {
-		return "", errNotImage
+		return "", 0, errNotImage
 	}
-	if ext != "webp" {
-		if _, err := src.Seek(0, io.SeekStart); err != nil {
-			return "", err
-		}
-		if _, _, err := image.DecodeConfig(src); err != nil {
-			return "", errNotImage
-		}
+	if ext == "webp" {
+		_, err = webp.DecodeConfig(bytes.NewReader(data))
+	} else {
+		_, _, err = image.DecodeConfig(bytes.NewReader(data))
 	}
-	if _, err := src.Seek(0, io.SeekStart); err != nil {
-		return "", err
+	if err != nil {
+		return "", 0, errNotImage
 	}
+	data, ext = a.process(data, ext, s)
 
 	day := time.Now().Format("2006/01/02")
 	dir := filepath.Join(a.cfg.imagesDir, filepath.FromSlash(day))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
+		return "", 0, err
 	}
 	tmp, err := os.CreateTemp(dir, ".upload-*")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer os.Remove(tmp.Name())
-	written, err := io.Copy(tmp, io.LimitReader(src, a.cfg.maxBytes+1))
-	if err == nil && written > a.cfg.maxBytes {
-		err = errTooLarge
-	}
+	_, err = tmp.Write(data)
 	if err == nil {
 		err = tmp.Chmod(0o644)
 	}
@@ -130,7 +139,7 @@ func (a *app) saveImage(fh *multipart.FileHeader) (string, error) {
 		err = cerr
 	}
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	for i := 0; i < 5; i++ {
@@ -138,29 +147,31 @@ func (a *app) saveImage(fh *multipart.FileHeader) (string, error) {
 		final := filepath.Join(dir, name)
 		if _, err := os.Lstat(final); os.IsNotExist(err) {
 			if err := os.Rename(tmp.Name(), final); err != nil {
-				return "", err
+				return "", 0, err
 			}
-			return day + "/" + name, nil
+			return day + "/" + name, int64(len(data)), nil
 		}
 	}
-	return "", errors.New("生成文件名失败")
+	return "", 0, errors.New("生成文件名失败")
 }
 
-func (a *app) receive(w http.ResponseWriter, r *http.Request, checkToken bool) {
-	r.Body = http.MaxBytesReader(w, r.Body, a.cfg.maxBytes+(1<<20))
+func (a *app) receive(w http.ResponseWriter, r *http.Request, viaAPI bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, a.maxBytes()+(1<<20))
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		writeJSON(w, failed(400, "请求无效或文件超过大小限制"))
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
 
-	if checkToken {
-		token := r.FormValue("token")
-		if token == "" {
-			token = strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	var tok Token
+	if viaAPI {
+		v := r.FormValue("token")
+		if v == "" {
+			v = strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		}
-		if !a.validToken(strings.TrimSpace(token)) {
-			writeJSON(w, failed(202, "Token 错误"))
+		var err error
+		if tok, err = a.findToken(strings.TrimSpace(v)); err != nil {
+			writeJSON(w, failed(202, err.Error()))
 			return
 		}
 	}
@@ -171,7 +182,7 @@ func (a *app) receive(w http.ResponseWriter, r *http.Request, checkToken bool) {
 		return
 	}
 	fh := files[0]
-	rel, err := a.saveImage(fh)
+	rel, size, err := a.saveImage(fh)
 	if err != nil {
 		if errors.Is(err, errTooLarge) || errors.Is(err, errNotImage) {
 			writeJSON(w, failed(400, err.Error()))
@@ -181,10 +192,16 @@ func (a *app) receive(w http.ResponseWriter, r *http.Request, checkToken bool) {
 		}
 		return
 	}
-	log.Printf("上传 %s（来源 %s）", rel, a.clientIP(r))
+	ip := a.clientIP(r)
+	entry := uploadEntry{Time: time.Now().Unix(), Path: rel, IP: ip, Size: size}
+	if viaAPI {
+		entry.Token, entry.ID = tokenHash(tok.Value), tok.ID
+	}
+	a.logUpload(entry)
+	log.Printf("上传 %s（来源 %s）", rel, ip)
 
 	link := a.cfg.baseURL + "/i/" + rel
-	writeJSON(w, uploadResult{
+	res := uploadResult{
 		Result:  "success",
 		Code:    200,
 		URL:     link,
@@ -192,7 +209,11 @@ func (a *app) receive(w http.ResponseWriter, r *http.Request, checkToken bool) {
 		Thumb:   link,
 		Del:     a.cfg.baseURL + "/del?f=" + url.QueryEscape(rel) + "&s=" + a.sign("del|"+rel),
 		Message: "success",
-	})
+	}
+	if viaAPI {
+		res.ID = &tok.ID
+	}
+	writeJSON(w, res)
 }
 
 // handleUpload 供网页上传使用，靠登录 Cookie 鉴权

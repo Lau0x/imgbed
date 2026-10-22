@@ -62,6 +62,13 @@ func (a *app) serveImage(w http.ResponseWriter, r *http.Request, rel string) {
 		http.NotFound(w, r)
 		return
 	}
+	if s := a.store.get(); s.Hotlink {
+		w.Header().Set("Vary", "Referer")
+		if !a.refererAllowed(r.Header.Get("Referer"), s) {
+			http.Error(w, "禁止盗链", http.StatusForbidden)
+			return
+		}
+	}
 	f, err := os.Open(filepath.Join(a.cfg.imagesDir, filepath.FromSlash(rel)))
 	if err != nil {
 		http.NotFound(w, r)
@@ -82,6 +89,43 @@ func (a *app) serveImage(w http.ResponseWriter, r *http.Request, rel string) {
 		h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 	}
 	http.ServeContent(w, r, st.Name(), st.ModTime(), f)
+}
+
+// normalizeReferer 把后台填的 https://a.com/path、A.com 等写法统一成小写域名
+func normalizeReferer(p string) string {
+	p = strings.ToLower(strings.TrimSpace(p))
+	if i := strings.Index(p, "://"); i >= 0 {
+		p = p[i+3:]
+	}
+	if i := strings.IndexAny(p, "/:"); i >= 0 {
+		p = p[:i]
+	}
+	return p
+}
+
+// refererAllowed 防盗链判断：本站、白名单域名（支持 *.example.com）放行，空 Referer 按设置决定
+func (a *app) refererAllowed(ref string, s Settings) bool {
+	if ref == "" {
+		return s.AllowEmptyRef
+	}
+	u, err := url.Parse(ref)
+	if err != nil || u.Hostname() == "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if base, err := url.Parse(a.cfg.baseURL); err == nil && strings.EqualFold(base.Hostname(), host) {
+		return true
+	}
+	for _, p := range s.AllowedRefs {
+		if strings.HasPrefix(p, "*.") {
+			if host == p[2:] || strings.HasSuffix(host, p[1:]) {
+				return true
+			}
+		} else if host == p {
+			return true
+		}
+	}
+	return false
 }
 
 // handleThumbRedirect 把旧的 thumb.php?img=/i/... 缩略图链接跳到原图

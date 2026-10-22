@@ -22,7 +22,8 @@
       {{range .Days}}<a href="/admin?d={{.}}"{{if eq . $.Day}} class="on"{{end}}>{{.}}</a>{{else}}<span class="muted">还没有图片</span>{{end}}
     </nav>
     <section>
-      <h3 style="margin:0 0 14px">{{.Day}} <span class="muted">共 {{len .Images}} 张</span></h3>
+      <h3 style="margin:0 0 14px">{{if .Title}}{{.Title}}{{else}}{{.Day}}{{end}} <span class="muted">共 {{len .Images}} 张</span></h3>
+      {{with .Extra}}<div style="margin:-6px 0 14px">{{.}}</div>{{end}}
       <div class="grid">
         {{range .Images}}
         <div class="tile">

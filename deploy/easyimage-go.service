@@ -14,7 +14,8 @@ EnvironmentFile=/etc/easyimage-go.env
 ExecStart=/usr/local/bin/easyimage-go \
     -listen 127.0.0.1:18321 \
     -images /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i \
-    -trash  /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash
+    -trash  /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash \
+    -config-dir /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/easyimage-config
 Restart=on-failure
 RestartSec=3
 
@@ -30,6 +31,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i
 ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash
+ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/easyimage-config
 
 [Install]
 WantedBy=multi-user.target

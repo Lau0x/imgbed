@@ -10,7 +10,9 @@ J="$W/cookies.txt"
 TOKEN=1c17b11693cb5ec63859b091c5b9c1b2
 FAILS=0
 
-(cd "$ROOT" && CGO_ENABLED=0 go build -o "$W/easyimage-go" . && go run ./test/fixtures "$W") || exit 1
+(cd "$ROOT" && CGO_ENABLED=0 go build -tags nodynamic -o "$W/easyimage-go" . \
+  && CGO_ENABLED=0 go build -tags nodynamic -o "$W/fixtool" ./test/fixtures) || exit 1
+"$W/fixtool" "$W" || exit 1
 
 EASYIMAGE_PASSWORD=testpass123 EASYIMAGE_SECRET=0123456789abcdef0123456789abcdef EASYIMAGE_TOKENS=$TOKEN \
 EASYIMAGE_LISTEN=127.0.0.1:$PORT EASYIMAGE_IMAGES="$W/site/i" EASYIMAGE_BASE="$B" \
@@ -92,6 +94,82 @@ echo "== 登录限流 =="
 for _ in 1 2 3 4 5; do curl -s -o /dev/null -H "$O" -H 'X-Real-IP: 203.0.113.1' -d password=wrong $B/login; done
 check "连续失败后锁定该 IP" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.1' -d password=testpass123 $B/login)" 429
 check "其他 IP 不受影响" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.2' -d password=testpass123 $B/login)" 303
+
+P="$W/fixtool"
+probe() { curl -s -o "$W/dl" "$1"; "$P" probe "$W/dl"; }
+save() { curl -s -o /dev/null -w '%{http_code}' -b $J -H "$O" --data "$1" $B/admin/settings; }
+tokact() { curl -s -o /dev/null -b $J -H "$O" --data "$1" $B/admin/tokens; }
+api() { curl -s -F image=@"$1" -F token="$2" $B/api/index.php; }
+
+echo "== 后台设置 =="
+check "未登录访问设置页" "$(code $B/admin/settings)" 303
+check "设置页" "$(code -b $J $B/admin/settings)" 200
+check "无 Origin 保存设置被拒" "$(code -b $J --data 'max_mb=10' $B/admin/settings)" 403
+check "环境变量里的 token 已导入后台" "$(curl -s -b $J $B/admin/settings | grep -c "tokens/files?t=$TOKEN")" 1
+
+echo "== Token 管理 =="
+T2=abcdef0123456789abcdef0123456789
+tokact "action=add&value=$T2&days=0&note=picgo"
+check "新增 token 可以上传" "$(api $W/fixtures/a.png $T2 | grep -o '"code":[0-9]*')" '"code":200'
+check "返回 token ID" "$(api $W/fixtures/a.png $T2 | grep -o '"id":[0-9]*')" '"id":2'
+tokact "action=disable&value=$T2"
+check "禁用后上传被拒" "$(api $W/fixtures/a.png $T2 | field message)" "Token 已禁用"
+tokact "action=enable&value=$T2"
+check "重新启用后可以上传" "$(api $W/fixtures/a.png $T2 | grep -o '"code":[0-9]*')" '"code":200'
+check "文件页列出该 token 的 3 张图" "$(curl -s -b $J "$B/admin/tokens/files?t=$T2" | grep -c 'class="name"')" 3
+check "设置页显示上传数量" "$(curl -s -b $J "$B/admin/settings?q=picgo" | grep -c '<td>3</td>')" 1
+tokact "action=purge&value=$T2"
+check "删除上传后文件页为空" "$(curl -s -b $J "$B/admin/tokens/files?t=$T2" | grep -c 'class="name"')" 0
+tokact "action=delete&value=$T2"
+check "删除 token 后上传被拒" "$(api $W/fixtures/a.png $T2 | field message)" "Token 错误"
+check "无 Origin 管理 token 被拒" "$(code -b $J --data "action=delete&value=$TOKEN" $B/admin/tokens)" 403
+PHP="<?php \$tokenList=Array( 'aaaabbbbccccddddeeeeffff00001111'=>Array( 'id'=>5, 'expired'=>4102444800, 'add_time'=>1680497928 ), '99998888777766665555444433332222'=>Array( 'id'=>6, 'expired'=>1680584583, 'add_time'=>1680498183 ) );"
+curl -s -o /dev/null -b $J -H "$O" --data-urlencode "php=$PHP" $B/admin/tokens/import
+check "导入的 EasyImage token 保留原 ID" "$(api $W/fixtures/a.png aaaabbbbccccddddeeeeffff00001111 | grep -o '"id":[0-9]*')" '"id":5'
+check "导入的过期 token 被拒" "$(api $W/fixtures/a.png 99998888777766665555444433332222 | field message)" "Token 已过期"
+
+echo "== 图片处理 =="
+BASESET="max_mb=10&quality=80&water_pos=9&water_size=6&water_color=%23000000&water_opacity=80&allow_empty_referer=on"
+save "$BASESET&compress=on" >/dev/null
+ORIG=$(wc -c < $W/fixtures/photo.jpg)
+U=$(api $W/fixtures/photo.jpg $TOKEN | field url)
+NEW=$(curl -s "$U" | wc -c)
+echo "      压缩前 $ORIG 字节，压缩后 $NEW 字节"
+check "压缩后变小" "$([ "$NEW" -lt "$ORIG" ] && echo yes)" yes
+check "压缩后尺寸和格式不变" "$(probe "$U" | cut -d' ' -f1,2)" "800x600 jpeg"
+U=$(api $W/fixtures/rot6.jpg $TOKEN | field url)
+check "按 EXIF 方向转正" "$(probe "$U" | cut -d' ' -f1)" "80x160"
+save "$BASESET&convert=webp" >/dev/null
+U=$(api $W/fixtures/photo.jpg $TOKEN | field url)
+check "转 WebP 后链接扩展名" "${U##*.}" webp
+check "转 WebP 后内容" "$(probe "$U" | cut -d' ' -f1,2)" "800x600 webp"
+save "$BASESET&watermark=on&water_text=TEST" >/dev/null
+U=$(api $W/fixtures/white.png $TOKEN | field url)
+check "白图加上了水印" "$([ "$(probe "$U" | cut -d' ' -f3)" -gt 0 ] && echo yes)" yes
+U=$(api $W/fixtures/a.png $TOKEN | field url)
+check "小于 100 像素的图不加水印" "$(probe "$U")" "8x8 png 1"
+check "水印预览" "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' -b $J $B/admin/settings/preview)" "200 image/png"
+save "$BASESET&watermark=on&water_text=%E4%B8%AD%E6%96%87" >/dev/null
+check "内置字体缺中文时提示" "$(curl -s -b $J $B/admin/settings | grep -c '当前字体不包含')" 1
+check "上传无效字体被拒" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" -F font=@$W/fixtures/font.ttf $B/admin/font | grep -c '%E5%AD%97%E4%BD%93%E6%97%A0%E6%B3%95%E8%AF%86%E5%88%AB')" 1
+save "$BASESET" >/dev/null
+U=$(api $W/fixtures/photo.jpg $TOKEN | field url)
+check "关闭处理后原样保存" "$(curl -s "$U" | cmp -s - $W/fixtures/photo.jpg && echo same)" same
+
+echo "== 防盗链 =="
+IMG=$B/i/2024/05/03/old123.jpg
+save "$BASESET&hotlink=on&allowed_referers=blog.example.org%0A*.friend.net" >/dev/null
+check "外站引用被拒" "$(code -H 'Referer: https://evil.com/p' $IMG)" 403
+check "白名单放行" "$(code -H 'Referer: https://blog.example.org/post/1' $IMG)" 200
+check "通配子域名放行" "$(code -H 'Referer: https://a.friend.net/' $IMG)" 200
+check "通配不放行相似域名" "$(code -H 'Referer: https://evilfriend.net/' $IMG)" 403
+check "本站放行" "$(code -H "Referer: $B/admin" $IMG)" 200
+check "空 Referer 放行" "$(code $IMG)" 200
+check "带 Vary: Referer" "$(curl -sI $IMG | grep -ci '^vary: referer')" 1
+save "max_mb=10&quality=80&hotlink=on" >/dev/null
+check "关闭直接访问后空 Referer 被拒" "$(code $IMG)" 403
+save "$BASESET" >/dev/null
+check "关闭防盗链后外站可用" "$(code -H 'Referer: https://evil.com/p' $IMG)" 200
 
 echo "== 健康检查 =="
 check "healthcheck 子命令" "$(EASYIMAGE_LISTEN=127.0.0.1:$PORT "$W/easyimage-go" healthcheck; echo $?)" 0
