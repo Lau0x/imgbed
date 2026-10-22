@@ -1,6 +1,8 @@
-# easyimage-go
+# PicNook
 
-一个不依赖 PHP 的自托管图床，可以直接替换 [EasyImage 2.0](https://github.com/icret/EasyImages2.0)：沿用原来的图片目录，**已经贴出去的图片链接一个都不会断**，PicGo 等上传工具也不用改配置。
+PicNook 是一个轻量的自托管图床，给自己存图、贴图用的"小角落"。不依赖 PHP 和数据库，一个程序文件或一个 Docker 容器就能跑起来。
+
+正在用 [EasyImage 2.0](https://github.com/icret/EasyImages2.0) 的话，可以直接换过来：PicNook 沿用原来的图片目录，**已经贴出去的图片链接一个都不会断**，PicGo 等上传工具也不用改配置，见[从 EasyImage 迁移](#从-easyimage-迁移)。
 
 - 单个可执行文件，Docker 镜像约 25 MB，不需要数据库、PHP 或任何运行环境
 - 网页上传：点击、拖拽、粘贴，一键复制链接 / Markdown / HTML / BBCode
@@ -10,33 +12,33 @@
 - 防盗链：Referer 白名单，支持通配子域名
 - 后台按日期浏览、删除图片，删除的图片进回收目录，误删可以找回
 
-> 本项目是社区独立实现的替代品，与 EasyImage 及其作者 [icret](https://github.com/icret) 没有任何关系，也不是官方的 Go 版本。名字里的 EasyImage 只用来说明它兼容的对象，代码没有复用 EasyImage 的任何部分。
+> PicNook 是独立开发的项目，与 EasyImage 及其作者 [icret](https://github.com/icret) 没有关联。它兼容 EasyImage 的目录结构和上传 API，是为了方便迁移，代码没有复用 EasyImage 的任何部分。
 
-## 为什么要换
+## 为什么不用 PHP
 
 2026 年 10 月公开的 PHP 核心漏洞 PHP2Shell（CVE-2026-109618 / CVE-2026-109619）可以在未登录的情况下远程执行代码。CISA 的通告说，所有处理网页请求的 PHP 都受影响，而且已经有人在实际利用（[CISA 通告](https://www.cisa.gov/news-events/alerts/2026/10/21/critical-vulnerabilities-php-require-immediate-patching)）。
 
 EasyImage 2.8.6 及以下版本自身也有任意文件上传（[CVE-2025-65471](https://osv.dev/vulnerability/CVE-2025-65471)）和通过文件重命名执行代码（[CVE-2025-65474](https://nvd.nist.gov/vuln/detail/CVE-2025-65474)）等漏洞。截至 2026 年 10 月，没有查到官方的修复版本。
 
-图床本质上只需要"收文件、存文件、发文件"。easyimage-go 把这三件事用 Go 重写，彻底去掉 PHP，读图片则完全交给 Nginx / OpenResty 当静态文件返回。
+图床本质上只需要"收文件、存文件、发文件"。PicNook 用 Go 实现这三件事，彻底去掉 PHP，读图片则完全交给 Nginx / OpenResty 当静态文件返回。
 
 ## 快速开始（Docker，全新安装）
 
 ```bash
-mkdir easyimage-go && cd easyimage-go
-curl -fsSLO https://raw.githubusercontent.com/Lau0x/easyimage-go/main/docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/Lau0x/easyimage-go/main/.env.example -o .env
+mkdir picnook && cd picnook
+curl -fsSLO https://raw.githubusercontent.com/Lau0x/picnook/main/docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/Lau0x/picnook/main/.env.example -o .env
 mkdir -p data && sudo chown 1000:1000 data
 ```
 
 生成签名密钥，再生成一个 API token（给 PicGo 等工具用）：
 
 ```bash
-sed -i "s/^EASYIMAGE_SECRET=.*/EASYIMAGE_SECRET=$(openssl rand -hex 32)/" .env
-sed -i "s/^EASYIMAGE_TOKENS=.*/EASYIMAGE_TOKENS=$(openssl rand -hex 16)/" .env
+sed -i "s/^PICNOOK_SECRET=.*/PICNOOK_SECRET=$(openssl rand -hex 32)/" .env
+sed -i "s/^PICNOOK_TOKENS=.*/PICNOOK_TOKENS=$(openssl rand -hex 16)/" .env
 ```
 
-然后编辑 `.env`，把 `EASYIMAGE_BASE` 改成你的图床网址，`EASYIMAGE_PASSWORD` 填一个足够长的后台密码。
+然后编辑 `.env`，把 `PICNOOK_BASE` 改成你的图床网址，`PICNOOK_PASSWORD` 填一个足够长的后台密码。
 
 ```bash
 chmod 600 .env
@@ -74,7 +76,7 @@ find <站点根目录>/i -type f ! -iregex '.*\.\(jpe?g\|png\|gif\|webp\|bmp\|ic
 
 如果有输出（尤其是 `.php`、`.phtml`、`.phar`），说明服务器可能已经被入侵。这时不要只换程序，要把服务器当作已失陷处理：排查其他站点、改掉所有密码和密钥，必要时重装系统。
 
-easyimage-go 部署后不会执行、也不会输出这些文件，但在宿主机上它们仍然存在。
+picnook 部署后不会执行、也不会输出这些文件，但在宿主机上它们仍然存在。
 
 ### 3. 准备好原来的 API Token
 
@@ -94,14 +96,14 @@ stat -c '%u:%g' <站点根目录>/i
 
 记下输出的两个数字，比如 `1000:1000`，下一步要用。新程序必须用同一个用户身份运行，才能往原来的目录里写新图片。
 
-### 5. 启动 easyimage-go
+### 5. 启动 picnook
 
 **方式一：Docker（推荐）**
 
 ```bash
-mkdir ~/easyimage-go && cd ~/easyimage-go
-curl -fsSLO https://raw.githubusercontent.com/Lau0x/easyimage-go/main/docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/Lau0x/easyimage-go/main/.env.example -o .env
+mkdir ~/picnook && cd ~/picnook
+curl -fsSLO https://raw.githubusercontent.com/Lau0x/picnook/main/docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/Lau0x/picnook/main/.env.example -o .env
 ```
 
 编辑 `docker-compose.yml`，把 `volumes` 改成挂载原来的 `i` 目录：
@@ -115,7 +117,7 @@ curl -fsSL https://raw.githubusercontent.com/Lau0x/easyimage-go/main/.env.exampl
 
 `config` 目录保存后台设置、token 和上传记录，一定要挂载出来，否则重建容器后会丢失。
 
-编辑 `.env`：`EASYIMAGE_BASE` 填原来的图床网址（比如 `https://img.example.com`），`EASYIMAGE_UID` / `EASYIMAGE_GID` 填第 4 步看到的数字，再填好密码和密钥。`EASYIMAGE_TOKENS` 可以留空。然后：
+编辑 `.env`：`PICNOOK_BASE` 填原来的图床网址（比如 `https://img.example.com`），`PICNOOK_UID` / `PICNOOK_GID` 填第 4 步看到的数字，再填好密码和密钥。`PICNOOK_TOKENS` 可以留空。然后：
 
 ```bash
 mkdir -p i-trash config && sudo chown <第4步的数字> i-trash config
@@ -126,26 +128,26 @@ curl -s http://127.0.0.1:18321/healthz     # 输出 ok 就是正常
 
 **方式二：直接运行（systemd）**
 
-从 [Releases](https://github.com/Lau0x/easyimage-go/releases) 下载对应架构的程序（`uname -m` 显示 `x86_64` 选 amd64，`aarch64` 选 arm64）：
+从 [Releases](https://github.com/Lau0x/picnook/releases) 下载对应架构的程序（`uname -m` 显示 `x86_64` 选 amd64，`aarch64` 选 arm64）：
 
 ```bash
-sudo install -m 755 easyimage-go-linux-amd64 /usr/local/bin/easyimage-go
-sudo cp .env.example /etc/easyimage-go.env && sudo chmod 600 /etc/easyimage-go.env   # 然后编辑填好
-sudo mkdir -p <站点根目录>/i-trash <站点根目录>/easyimage-config
-sudo chown <第4步的数字> <站点根目录>/i-trash <站点根目录>/easyimage-config
+sudo install -m 755 picnook-linux-amd64 /usr/local/bin/picnook
+sudo cp .env.example /etc/picnook.env && sudo chmod 600 /etc/picnook.env   # 然后编辑填好
+sudo mkdir -p <站点根目录>/i-trash <站点根目录>/picnook-config
+sudo chown <第4步的数字> <站点根目录>/i-trash <站点根目录>/picnook-config
 ```
 
-把 [deploy/easyimage-go.service](deploy/easyimage-go.service) 复制到 `/etc/systemd/system/`，把里面的路径改成你的 `<站点根目录>`，`User` / `Group` 改成图片目录的属主。然后：
+把 [deploy/picnook.service](deploy/picnook.service) 复制到 `/etc/systemd/system/`，把里面的路径改成你的 `<站点根目录>`，`User` / `Group` 改成图片目录的属主。然后：
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now easyimage-go
+sudo systemctl enable --now picnook
 curl -s http://127.0.0.1:18321/healthz
 ```
 
 ### 6. 改反向代理，下线 PHP
 
-按下面的[反向代理](#反向代理)替换站点配置。**一定要删掉原来所有 PHP 相关的配置**，包括 `location ~ \.php$`、`fastcgi_pass`、`include enable-php-*.conf` 和 `index index.php`。只要还留着一条，PHP 请求就会被交给 PHP 处理，绕过 easyimage-go。
+按下面的[反向代理](#反向代理)替换站点配置。**一定要删掉原来所有 PHP 相关的配置**，包括 `location ~ \.php$`、`fastcgi_pass`、`include enable-php-*.conf` 和 `index index.php`。只要还留着一条，PHP 请求就会被交给 PHP 处理，绕过 picnook。
 
 ```bash
 nginx -t && nginx -s reload          # 1Panel 在面板里保存配置会自动重载
@@ -203,7 +205,7 @@ location ^~ /i/ {
     return 404;
 }
 
-# 旧的 .php 地址（api/index.php、thumb.php）交给 easyimage-go 处理
+# 旧的 .php 地址（api/index.php、thumb.php）交给 picnook 处理
 location ~* \.php$ { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; }
 
 location / { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; }
@@ -212,7 +214,7 @@ location / { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; pro
 几点说明：
 
 - **1Panel**：OpenResty 跑在容器里，`root` 要写容器内的路径 `/www/sites/<域名>/index`，不是宿主机的 `/opt/1panel/...`。1Panel 的 OpenResty 默认使用 host 网络，`127.0.0.1:18321` 可以直接访问。
-- **全新安装**：如果图片不在 Nginx 能读到的目录里，可以省掉 `/i/` 那一段，全部反代给 easyimage-go，由它自己返回图片。这样更简单，只是性能稍差。
+- **全新安装**：如果图片不在 Nginx 能读到的目录里，可以省掉 `/i/` 那一段，全部反代给 picnook，由它自己返回图片。这样更简单，只是性能稍差。
 - **`Host` 和 `X-Real-IP` 两行不能少**：前者用于防跨站提交的来源校验，后者用于登录限流按真实 IP 计数。
 - **Caddy**：`reverse_proxy 127.0.0.1:18321` 即可，Caddy 默认会传递 Host。需要额外加 `header_up X-Real-IP {remote_host}`。
 
@@ -285,16 +287,16 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 
 | 环境变量 | 命令行参数 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `EASYIMAGE_BASE` | `-base` | 无，必填 | 图床对外网址，返回的链接以它开头 |
-| `EASYIMAGE_PASSWORD` | 无 | 无，必填 | 后台密码，至少 8 位 |
-| `EASYIMAGE_SECRET` | 无 | 无，必填 | 签名密钥，至少 32 个字符。更换后所有人需要重新登录，旧的删除链接失效 |
-| `EASYIMAGE_TOKENS` | 无 | 空 | API token，逗号分隔。只在首次启动时导入后台，之后在后台管理 |
-| `EASYIMAGE_IMAGES` | `-images` | Docker 内为 `/data/i` | 图片目录，对应网址里的 `/i/` |
-| `EASYIMAGE_TRASH` | `-trash` | 图片目录旁的 `i-trash` | 删除的图片移到这里 |
-| `EASYIMAGE_CONFIG_DIR` | `-config-dir` | 图片目录旁的 `easyimage-config`，Docker 内为 `/data/config` | 后台设置、token、上传记录和水印字体 |
-| `EASYIMAGE_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
-| `EASYIMAGE_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
-| `EASYIMAGE_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |
+| `PICNOOK_BASE` | `-base` | 无，必填 | 图床对外网址，返回的链接以它开头 |
+| `PICNOOK_PASSWORD` | 无 | 无，必填 | 后台密码，至少 8 位 |
+| `PICNOOK_SECRET` | 无 | 无，必填 | 签名密钥，至少 32 个字符。更换后所有人需要重新登录，旧的删除链接失效 |
+| `PICNOOK_TOKENS` | 无 | 空 | API token，逗号分隔。只在首次启动时导入后台，之后在后台管理 |
+| `PICNOOK_IMAGES` | `-images` | Docker 内为 `/data/i` | 图片目录，对应网址里的 `/i/` |
+| `PICNOOK_TRASH` | `-trash` | 图片目录旁的 `i-trash` | 删除的图片移到这里 |
+| `PICNOOK_CONFIG_DIR` | `-config-dir` | 图片目录旁的 `picnook-config`，Docker 内为 `/data/config` | 后台设置、token、上传记录和水印字体 |
+| `PICNOOK_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
+| `PICNOOK_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
+| `PICNOOK_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |
 
 ## 安全设计
 
@@ -307,17 +309,17 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 - **超大图片**：超过 4000 万像素的图片不解码处理，最多同时处理 2 张，避免被恶意大图撑爆内存
 - **最小权限**：Docker 镜像基于 distroless，没有 shell，以非 root 运行；systemd 配置启用了 `ProtectSystem=strict` 等沙箱选项，只开放图片目录的写权限
 
-发现安全问题请通过 GitHub 的 [Security Advisories](https://github.com/Lau0x/easyimage-go/security/advisories/new) 私下报告，不要直接开 issue。
+发现安全问题请通过 GitHub 的 [Security Advisories](https://github.com/Lau0x/picnook/security/advisories/new) 私下报告，不要直接开 issue。
 
 ## 从源码构建
 
 需要 Go 1.26 或以上版本。依赖只有 `golang.org/x/image`（字体渲染）和 [gen2brain/webp](https://github.com/gen2brain/webp)（WebP 编码，由官方 libwebp 转译成的纯 Go 代码，不需要 CGO）。
 
 ```bash
-git clone https://github.com/Lau0x/easyimage-go.git && cd easyimage-go
-CGO_ENABLED=0 go build -tags nodynamic -o easyimage-go .
+git clone https://github.com/Lau0x/picnook.git && cd picnook
+CGO_ENABLED=0 go build -tags nodynamic -o picnook .
 bash test/e2e.sh          # 端到端测试：模拟 EasyImage 站点，检查兼容性和安全项
-docker build -t easyimage-go .  # 构建镜像
+docker build -t picnook .  # 构建镜像
 ```
 
 ## License

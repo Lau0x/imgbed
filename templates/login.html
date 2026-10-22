@@ -1,7 +1,7 @@
 {{template "head" "登录"}}
 <main style="max-width:360px;margin-top:12vh">
   <form class="card" method="post" action="/login">
-    <h2 style="margin:0 0 16px">登录图床</h2>
+    <h2 style="margin:0 0 16px">登录 PicNook</h2>
     {{with .Error}}<p class="err">{{.}}</p>{{end}}
     <input type="hidden" name="next" value="{{.Next}}">
     <input type="password" name="password" placeholder="管理密码" autocomplete="current-password" autofocus required>

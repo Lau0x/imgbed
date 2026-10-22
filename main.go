@@ -1,4 +1,4 @@
-// easyimage-go 是 EasyImage 的替代品：不依赖 PHP，沿用原有的 /i/年/月/日/文件名 目录结构和上传 API。
+// PicNook 是一个不依赖 PHP 的自托管图床，兼容 EasyImage 的 /i/年/月/日/文件名 目录结构和上传 API，方便迁移。
 package main
 
 import (
@@ -60,7 +60,7 @@ func envOr(key, def string) string {
 
 // healthcheck 供 Docker HEALTHCHECK 使用：镜像里没有 curl，用程序自己请求 /healthz
 func healthcheck() {
-	host, port, err := net.SplitHostPort(envOr("EASYIMAGE_LISTEN", "127.0.0.1:18321"))
+	host, port, err := net.SplitHostPort(envOr("PICNOOK_LISTEN", "127.0.0.1:18321"))
 	if err != nil {
 		os.Exit(1)
 	}
@@ -82,17 +82,17 @@ func main() {
 	var cfg config
 	var maxMB int64
 	var trusted string
-	defaultMB, err := strconv.ParseInt(envOr("EASYIMAGE_MAX_MB", "10"), 10, 64)
+	defaultMB, err := strconv.ParseInt(envOr("PICNOOK_MAX_MB", "10"), 10, 64)
 	if err != nil {
-		log.Fatal("EASYIMAGE_MAX_MB 必须是整数")
+		log.Fatal("PICNOOK_MAX_MB 必须是整数")
 	}
-	flag.StringVar(&cfg.listen, "listen", envOr("EASYIMAGE_LISTEN", "127.0.0.1:18321"), "监听地址（EASYIMAGE_LISTEN）")
-	flag.StringVar(&cfg.imagesDir, "images", envOr("EASYIMAGE_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（EASYIMAGE_IMAGES）")
-	flag.StringVar(&cfg.trashDir, "trash", envOr("EASYIMAGE_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（EASYIMAGE_TRASH）")
-	flag.StringVar(&cfg.configDir, "config-dir", envOr("EASYIMAGE_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 easyimage-config（EASYIMAGE_CONFIG_DIR）")
-	flag.StringVar(&cfg.baseURL, "base", envOr("EASYIMAGE_BASE", ""), "图床网址，例如 https://img.example.com（EASYIMAGE_BASE）")
-	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（EASYIMAGE_MAX_MB）")
-	flag.StringVar(&trusted, "trusted-proxies", envOr("EASYIMAGE_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（EASYIMAGE_TRUSTED_PROXIES）")
+	flag.StringVar(&cfg.listen, "listen", envOr("PICNOOK_LISTEN", "127.0.0.1:18321"), "监听地址（PICNOOK_LISTEN）")
+	flag.StringVar(&cfg.imagesDir, "images", envOr("PICNOOK_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（PICNOOK_IMAGES）")
+	flag.StringVar(&cfg.trashDir, "trash", envOr("PICNOOK_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（PICNOOK_TRASH）")
+	flag.StringVar(&cfg.configDir, "config-dir", envOr("PICNOOK_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 picnook-config（PICNOOK_CONFIG_DIR）")
+	flag.StringVar(&cfg.baseURL, "base", envOr("PICNOOK_BASE", ""), "图床网址，例如 https://img.example.com（PICNOOK_BASE）")
+	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（PICNOOK_MAX_MB）")
+	flag.StringVar(&trusted, "trusted-proxies", envOr("PICNOOK_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（PICNOOK_TRUSTED_PROXIES）")
 	flag.Parse()
 
 	for _, s := range strings.Split(trusted, ",") {
@@ -106,9 +106,9 @@ func main() {
 		cfg.trusted = append(cfg.trusted, n)
 	}
 
-	cfg.password = os.Getenv("EASYIMAGE_PASSWORD")
-	cfg.secret = []byte(os.Getenv("EASYIMAGE_SECRET"))
-	for _, t := range strings.Split(os.Getenv("EASYIMAGE_TOKENS"), ",") {
+	cfg.password = os.Getenv("PICNOOK_PASSWORD")
+	cfg.secret = []byte(os.Getenv("PICNOOK_SECRET"))
+	for _, t := range strings.Split(os.Getenv("PICNOOK_TOKENS"), ",") {
 		if t = strings.TrimSpace(t); t != "" {
 			cfg.tokens = append(cfg.tokens, t)
 		}
@@ -116,13 +116,13 @@ func main() {
 	cfg.baseURL = strings.TrimRight(cfg.baseURL, "/")
 
 	if cfg.imagesDir == "" || cfg.baseURL == "" {
-		log.Fatal("必须指定图片目录（-images / EASYIMAGE_IMAGES）和网址（-base / EASYIMAGE_BASE）")
+		log.Fatal("必须指定图片目录（-images / PICNOOK_IMAGES）和网址（-base / PICNOOK_BASE）")
 	}
 	if len(cfg.password) < 8 {
-		log.Fatal("环境变量 EASYIMAGE_PASSWORD 至少 8 位")
+		log.Fatal("环境变量 PICNOOK_PASSWORD 至少 8 位")
 	}
 	if len(cfg.secret) < 32 {
-		log.Fatal("环境变量 EASYIMAGE_SECRET 至少 32 个字符")
+		log.Fatal("环境变量 PICNOOK_SECRET 至少 32 个字符")
 	}
 	u, err := url.Parse(cfg.baseURL)
 	if err != nil || u.Host == "" {
@@ -143,7 +143,7 @@ func main() {
 		cfg.trashDir = filepath.Join(filepath.Dir(cfg.imagesDir), "i-trash")
 	}
 	if cfg.configDir == "" {
-		cfg.configDir = filepath.Join(filepath.Dir(cfg.imagesDir), "easyimage-config")
+		cfg.configDir = filepath.Join(filepath.Dir(cfg.imagesDir), "picnook-config")
 	}
 	if err := os.MkdirAll(cfg.configDir, 0o700); err != nil {
 		log.Fatalf("创建配置目录失败：%v", err)
@@ -162,7 +162,7 @@ func main() {
 		log.Fatalf("读取配置失败：%v", err)
 	}
 	if !first && len(cfg.tokens) > 0 {
-		log.Printf("提示：配置已存在，EASYIMAGE_TOKENS 只在首次启动时导入，请在后台管理 token")
+		log.Printf("提示：配置已存在，PICNOOK_TOKENS 只在首次启动时导入，请在后台管理 token")
 	}
 
 	a := &app{
@@ -182,7 +182,7 @@ func main() {
 		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
-	log.Printf("easyimage-go 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
+	log.Printf("picnook 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
 	log.Fatal(srv.ListenAndServe())
 }
 

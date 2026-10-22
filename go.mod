@@ -1,4 +1,4 @@
-module github.com/Lau0x/easyimage-go
+module github.com/Lau0x/picnook
 
 go 1.26.0
 

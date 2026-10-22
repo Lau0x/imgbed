@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	sessionCookie = "easyimage_session"
+	sessionCookie = "picnook_session"
 	sessionTTL    = 7 * 24 * time.Hour
 	maxFails      = 5
 	failWindow    = 15 * time.Minute
