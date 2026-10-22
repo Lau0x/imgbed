@@ -1,0 +1,18 @@
+{{template "head" "删除图片"}}
+<main style="max-width:420px;margin-top:12vh">
+  <div class="card">
+    {{if .Msg}}
+      <p style="margin:0">{{.Msg}}</p>
+    {{else}}
+      <h3 style="margin:0 0 12px">确定删除这张图片？</h3>
+      <img src="{{.URL}}" alt="" style="max-width:100%;max-height:240px;border-radius:6px">
+      <p class="muted" style="word-break:break-all">{{.URL}}</p>
+      <form method="post" action="/del">
+        <input type="hidden" name="f" value="{{.F}}">
+        <input type="hidden" name="s" value="{{.S}}">
+        <button class="danger" type="submit">确认删除</button>
+      </form>
+    {{end}}
+  </div>
+</main>
+{{template "foot"}}

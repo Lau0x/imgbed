@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# 端到端测试：编译程序，在临时目录里模拟一个 EasyImage 站点，逐项检查兼容性和安全性
+set -u
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+W="$(mktemp -d)"
+PORT="${PORT:-18399}"
+B="http://127.0.0.1:$PORT"
+O="Origin: $B"
+J="$W/cookies.txt"
+TOKEN=1c17b11693cb5ec63859b091c5b9c1b2
+FAILS=0
+
+(cd "$ROOT" && CGO_ENABLED=0 go build -o "$W/imgbed" . && go run ./test/fixtures "$W") || exit 1
+
+IMGBED_PASSWORD=testpass123 IMGBED_SECRET=0123456789abcdef0123456789abcdef IMGBED_TOKENS=$TOKEN \
+IMGBED_LISTEN=127.0.0.1:$PORT IMGBED_IMAGES="$W/site/i" IMGBED_BASE="$B" \
+  "$W/imgbed" > "$W/server.log" 2>&1 &
+PID=$!
+trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null; rm -rf "$W"' EXIT
+for _ in $(seq 50); do curl -s "$B/healthz" >/dev/null && break; sleep 0.1; done
+
+code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+field() { grep -o "\"$1\":\"[^\"]*\"" | cut -d'"' -f4; }
+check() {
+  if [ "$2" = "$3" ]; then echo "PASS  $1"; else echo "FAIL  $1（期望 $3，实际 $2）"; FAILS=$((FAILS + 1)); fi
+}
+
+echo "== 旧链接兼容 =="
+check "旧图片 /i/2024/05/03/old123.jpg" "$(code $B/i/2024/05/03/old123.jpg)" 200
+check "旧图片 Content-Type" "$(curl -sI $B/i/2024/05/03/old123.jpg | grep -i '^content-type' | tr -d '\r' | awk '{print $2}')" image/jpeg
+check "旧缩略图 /i/cache/" "$(code $B/i/cache/2024_05_03_old123.png)" 200
+check "hide_path 链接 /2024/05/03/old123.jpg" "$(code $B/2024/05/03/old123.jpg)" 200
+check "thumb.php 跳转到原图" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$B/app/thumb.php?img=/i/2024/05/03/old123.jpg")" "301 $B/i/2024/05/03/old123.jpg"
+check "Range 请求" "$(code -H 'Range: bytes=0-9' $B/i/2024/05/03/old123.jpg)" 206
+
+echo "== 安全 =="
+check "残留 shell.php 不输出" "$(code $B/i/2024/05/03/shell.php)" 404
+check "路径穿越 /i/../" "$(code -L --path-as-is $B/i/../../imgbed)" 404
+check "编码穿越 %2e%2e" "$(code -L --path-as-is "$B/i/%2e%2e/%2e%2e/imgbed")" 404
+check "编码穿越 ..%2f" "$(code -L --path-as-is "$B/i/2024/..%2f..%2f..%2fimgbed")" 404
+check "目录不列出" "$(code $B/i/2024/05/03/)" 404
+check "thumb.php 不能跳到外站" "$(code "$B/app/thumb.php?img=//evil.com/a.jpg")" 404
+check "未登录访问首页跳登录" "$(code $B/)" 303
+check "未登录访问管理页" "$(code $B/admin)" 303
+check "未登录网页上传" "$(curl -s -H "$O" -F image=@$W/fixtures/a.png $B/upload | grep -o '"code":[0-9]*')" '"code":401'
+
+echo "== 登录 =="
+check "无 Origin 登录被拒" "$(code -d password=testpass123 $B/login)" 403
+check "错误密码" "$(code -H "$O" -d password=wrong $B/login)" 401
+check "正确密码" "$(code -c $J -H "$O" -d password=testpass123 $B/login)" 303
+check "登录后首页" "$(code -b $J $B/)" 200
+check "伪造 Cookie" "$(code -b 'imgbed_session=9999999999.deadbeef' $B/)" 303
+
+echo "== 网页上传 =="
+R=$(curl -s -b $J -H "$O" -F image=@$W/fixtures/a.png $B/upload)
+check "上传 PNG" "$(echo "$R" | grep -o '"code":[0-9]*')" '"code":200'
+URL=$(echo "$R" | field url)
+check "新图片可访问" "$(code "$URL")" 200
+check "跨站上传被拒" "$(curl -s -b $J -H 'Origin: https://evil.com' -F image=@$W/fixtures/a.png $B/upload | grep -o '"code":[0-9]*')" '"code":401'
+check "伪装成 jpg 的 PHP" "$(curl -s -b $J -H "$O" -F image=@$W/fixtures/shell.jpg $B/upload | grep -o '"code":[0-9]*')" '"code":400'
+check "JPEG 文件头 + PHP" "$(curl -s -b $J -H "$O" -F image=@$W/fixtures/fake.jpg $B/upload | grep -o '"code":[0-9]*')" '"code":400'
+check "超过大小上限" "$(curl -s -b $J -H "$O" -F image=@$W/fixtures/big.png $B/upload | grep -o '"code":[0-9]*')" '"code":400'
+
+echo "== EasyImage 兼容 API =="
+R=$(curl -s -F image=@$W/fixtures/a.png -F token=$TOKEN $B/api/index.php)
+check "API 上传" "$(echo "$R" | grep -o '"result":"success"')" '"result":"success"'
+check "API 错误 Token" "$(curl -s -F image=@$W/fixtures/a.png -F token=bad $B/api/index.php | grep -o '"code":[0-9]*')" '"code":202'
+check "API 没有文件" "$(curl -s -F token=$TOKEN $B/api/index.php | grep -o '"code":[0-9]*')" '"code":204'
+check "API Bearer Token" "$(curl -s -H "Authorization: Bearer $TOKEN" -F image=@$W/fixtures/a.png $B/api/upload | grep -o '"code":[0-9]*')" '"code":200'
+DEL=$(echo "$R" | field del)
+AURL=$(echo "$R" | field url)
+check "删除链接 GET 只显示确认页" "$(code "$DEL")" 200
+check "GET 之后图片还在" "$(code "$AURL")" 200
+check "篡改签名" "$(code "${DEL%?}0")" 403
+F=$(echo "$DEL" | sed -E 's/.*[?&]f=([^&]*).*/\1/')
+S=$(echo "$DEL" | sed -E 's/.*[?&]s=([^&]*).*/\1/')
+curl -s -o /dev/null -H "$O" -d "f=$F&s=$S" $B/del
+check "POST 确认后删除" "$(code "$AURL")" 404
+
+echo "== 管理后台 =="
+check "管理页" "$(code -b $J $B/admin)" 200
+check "列出旧图" "$(curl -s -b $J "$B/admin?d=2024/05/03" | grep -c 'class="name">old123.jpg')" 1
+check "不列出 shell.php" "$(curl -s -b $J "$B/admin?d=2024/05/03" | grep -c shell.php)" 0
+check "后台删除拒绝穿越路径" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" -d 'f=../../imgbed' $B/admin/delete | grep -o 'msg=[^&]*')" "msg=%E8%B7%AF%E5%BE%84%E6%97%A0%E6%95%88"
+REL=${URL#$B/i/}
+curl -s -o /dev/null -b $J -H "$O" -d "f=$REL" $B/admin/delete
+check "后台删除新图" "$(code "$URL")" 404
+check "删除的图在回收目录" "$(test -f "$W/site/i-trash/$REL" && echo yes)" yes
+check "程序文件未受影响" "$(test -f "$W/imgbed" && echo yes)" yes
+
+echo "== 登录限流 =="
+for _ in 1 2 3 4 5; do curl -s -o /dev/null -H "$O" -H 'X-Real-IP: 203.0.113.1' -d password=wrong $B/login; done
+check "连续失败后锁定该 IP" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.1' -d password=testpass123 $B/login)" 429
+check "其他 IP 不受影响" "$(code -H "$O" -H 'X-Real-IP: 203.0.113.2' -d password=testpass123 $B/login)" 303
+
+echo "== 健康检查 =="
+check "healthcheck 子命令" "$(IMGBED_LISTEN=127.0.0.1:$PORT "$W/imgbed" healthcheck; echo $?)" 0
+
+echo
+if [ "$FAILS" -gt 0 ]; then
+  echo "$FAILS 项失败，服务日志："
+  cat "$W/server.log"
+  exit 1
+fi
+echo "全部通过"

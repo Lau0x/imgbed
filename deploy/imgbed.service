@@ -1,0 +1,35 @@
+# 放到 /etc/systemd/system/imgbed.service
+#
+# 下面的路径是宿主机上的真实路径（1Panel 默认在 /opt/1panel/apps/openresty/openresty/www/sites/...），
+# 改成原站点根目录。User 要和 i 目录的属主一致，可用 stat -c %U <站点根目录>/i 查看。
+
+[Unit]
+Description=imgbed image host
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+EnvironmentFile=/etc/imgbed.env
+ExecStart=/usr/local/bin/imgbed \
+    -listen 127.0.0.1:18321 \
+    -images /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i \
+    -trash  /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i
+ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash
+
+[Install]
+WantedBy=multi-user.target

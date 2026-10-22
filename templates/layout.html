@@ -1,0 +1,44 @@
+{{define "head"}}<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.}} · 图床</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1d2129;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb;--danger:#dc2626;--ok:#16a34a}
+@media (prefers-color-scheme:dark){:root{--bg:#111318;--card:#1b1e25;--text:#e6e8eb;--muted:#9aa1ab;--line:#2b2f38;--accent:#5b8cff;--danger:#f05252;--ok:#3fb950}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--accent);text-decoration:none}
+header{display:flex;align-items:center;gap:20px;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+header .brand{font-weight:600;color:var(--text);margin-right:auto}
+header form{margin:0}
+main{max-width:1100px;margin:28px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:6px;padding:5px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{color:var(--danger)}
+button.link{border:0;background:none;color:var(--accent);padding:0}
+input[type=text],input[type=password]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
+.muted{color:var(--muted);font-size:13px}
+.msg{padding:10px 14px;border-radius:6px;margin-bottom:16px;background:var(--card);border:1px solid var(--line)}
+.err{color:var(--danger)}
+</style>
+</head>
+<body>
+{{end}}
+
+{{define "nav"}}
+<header>
+  <a class="brand" href="/">图床</a>
+  <a href="/">上传</a>
+  <a href="/admin">管理</a>
+  <form method="post" action="/logout"><button class="link" type="submit">退出</button></form>
+</header>
+{{end}}
+
+{{define "foot"}}
+</body>
+</html>
+{{end}}

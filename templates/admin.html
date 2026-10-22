@@ -1,0 +1,57 @@
+{{template "head" "管理"}}
+{{template "nav"}}
+<style>
+.layout{display:grid;grid-template-columns:150px 1fr;gap:20px}
+.days{max-height:75vh;overflow:auto;font-size:14px}
+.days a{display:block;padding:3px 8px;border-radius:4px;color:var(--text)}
+.days a.on{background:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tile img{display:block;width:100%;height:150px;object-fit:cover;background:var(--bg)}
+.tile .meta{padding:8px 10px;font-size:12px}
+.tile .name{word-break:break-all;color:var(--text)}
+.tile .ops{display:flex;gap:6px;margin-top:6px}
+.tile .ops button{font-size:12px;padding:2px 8px}
+.tile form{margin:0}
+@media (max-width:640px){.layout{grid-template-columns:1fr}.days{max-height:none;display:flex;flex-wrap:wrap;gap:4px}}
+</style>
+<main>
+  {{with .Msg}}<div class="msg">{{.}}</div>{{end}}
+  <div class="layout">
+    <nav class="days card" style="padding:10px">
+      {{range .Days}}<a href="/admin?d={{.}}"{{if eq . $.Day}} class="on"{{end}}>{{.}}</a>{{else}}<span class="muted">还没有图片</span>{{end}}
+    </nav>
+    <section>
+      <h3 style="margin:0 0 14px">{{.Day}} <span class="muted">共 {{len .Images}} 张</span></h3>
+      <div class="grid">
+        {{range .Images}}
+        <div class="tile">
+          <a href="{{.URL}}" target="_blank" rel="noopener"><img src="{{.URL}}" alt="" loading="lazy"></a>
+          <div class="meta">
+            <div class="name">{{.Name}}</div>
+            <div class="muted">{{.Time}} · {{.Size}}</div>
+            <div class="ops">
+              <button type="button" data-url="{{.URL}}" class="copy">复制链接</button>
+              <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效。')">
+                <input type="hidden" name="f" value="{{.Rel}}">
+                <button class="danger" type="submit">删除</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+document.querySelectorAll('button.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    navigator.clipboard.writeText(b.dataset.url).then(function () {
+      b.textContent = '已复制';
+      setTimeout(function () { b.textContent = '复制链接'; }, 1200);
+    });
+  });
+});
+</script>
+{{template "foot"}}

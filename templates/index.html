@@ -1,0 +1,120 @@
+{{template "head" "上传"}}
+{{template "nav"}}
+<style>
+#drop{border:2px dashed var(--line);border-radius:10px;padding:48px 20px;text-align:center;cursor:pointer;transition:border-color .15s}
+#drop.over{border-color:var(--accent)}
+#drop strong{display:block;font-size:17px;margin-bottom:6px}
+#results{display:grid;gap:14px;margin-top:20px}
+.item{display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:start}
+.item img{width:96px;height:96px;object-fit:cover;border-radius:6px;background:var(--bg)}
+.item .name{font-weight:500;margin-bottom:6px;word-break:break-all}
+.row{display:flex;gap:8px;margin-top:6px;align-items:center}
+.row label{width:72px;flex:none;font-size:13px;color:var(--muted)}
+.row input{font-size:13px;padding:5px 8px}
+@media (max-width:560px){.item{grid-template-columns:1fr}.row label{width:56px}}
+</style>
+<main>
+  <div class="card">
+    <div id="drop">
+      <strong>点击选择、拖拽或直接粘贴图片</strong>
+      <span class="muted">支持 jpg / png / gif / webp，单张不超过 {{.MaxMB}} MB，可一次选多张</span>
+    </div>
+    <input id="file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+  </div>
+  <div id="results"></div>
+</main>
+<script>
+(function () {
+  var drop = document.getElementById('drop');
+  var input = document.getElementById('file');
+  var results = document.getElementById('results');
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function row(label, value) {
+    var r = el('div', 'row');
+    var inp = el('input');
+    inp.type = 'text';
+    inp.readOnly = true;
+    inp.value = value;
+    inp.addEventListener('focus', function () { inp.select(); });
+    var btn = el('button', '', '复制');
+    btn.type = 'button';
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(value).then(function () {
+        btn.textContent = '已复制';
+        setTimeout(function () { btn.textContent = '复制'; }, 1200);
+      });
+    });
+    r.append(el('label', '', label), inp, btn);
+    return r;
+  }
+
+  function upload(file) {
+    var card = el('div', 'card item');
+    var img = el('img');
+    img.alt = '';
+    img.src = URL.createObjectURL(file);
+    var body = el('div');
+    var status = el('div', 'muted', '上传中…');
+    body.append(el('div', 'name', file.name), status);
+    card.append(img, body);
+    results.prepend(card);
+
+    var fd = new FormData();
+    fd.append('image', file);
+    fetch('/upload', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.result !== 'success') {
+          status.className = 'err';
+          status.textContent = d.message || '上传失败';
+          if (d.code === 401) location.href = '/login';
+          return;
+        }
+        status.remove();
+        var alt = d.srcName || '';
+        body.append(
+          row('链接', d.url),
+          row('Markdown', '![' + alt + '](' + d.url + ')'),
+          row('HTML', '<img src="' + d.url + '" alt="' + alt.replace(/"/g, '&quot;') + '">'),
+          row('BBCode', '[img]' + d.url + '[/img]')
+        );
+      })
+      .catch(function () {
+        status.className = 'err';
+        status.textContent = '网络错误，上传失败';
+      });
+  }
+
+  function handle(files) {
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].type.indexOf('image/') === 0) upload(files[i]);
+    }
+  }
+
+  drop.addEventListener('click', function () { input.click(); });
+  input.addEventListener('change', function () { handle(input.files); input.value = ''; });
+  drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    drop.classList.remove('over');
+    handle(e.dataTransfer.files);
+  });
+  document.addEventListener('paste', function (e) {
+    var files = [];
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') files.push(items[i].getAsFile());
+    }
+    if (files.length) handle(files);
+  });
+})();
+</script>
+{{template "foot"}}
