@@ -1,127 +1,205 @@
 {{template "head" "图片"}}
 {{template "nav"}}
 <style>
-.layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;align-items:start}
-.layout>*{min-width:0}
-.days{position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;padding:14px 10px;scrollbar-width:thin}
-.days h4{font:600 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 8px 12px}
-.days details{margin-bottom:2px}
-.days summary{list-style:none;cursor:pointer;padding:7px 8px;border-radius:8px;font:600 14px/1.2 var(--display);display:flex;justify-content:space-between;align-items:center}
-.days summary::-webkit-details-marker{display:none}
-.days summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;margin-right:4px}
-.days details[open] summary::after{transform:rotate(45deg)}
-.days summary:hover{background:var(--paper-2)}
-.days .list{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 4px 10px}
-.days .list a{text-align:center;padding:6px 0;border-radius:7px;font:500 13px/1 var(--sans);color:var(--ink-2);font-variant-numeric:tabular-nums}
-.days .list a:hover{background:var(--paper-2);color:var(--ink)}
-.days .list a.on{background:var(--accent);color:var(--on-accent)}
-.days .none{color:var(--muted);font-size:13px;padding:0 8px}
+.lib-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.lib-head h1{font-size:30px;line-height:1.15}
+.stats{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.stat{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--sans);padding:6px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink-2)}
+.stat b{color:var(--ink);font-weight:650}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.seg button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:6px 12px;border-radius:999px;font:500 13px/1 var(--sans);color:var(--ink-2);cursor:pointer}
+.seg button svg{width:15px;height:15px}
+.seg button.on{background:var(--accent-soft);color:var(--accent)}
+.ico{width:16px;height:16px;flex:none}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
-.tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
-.shot{position:relative;aspect-ratio:4/3;background:var(--paper-2) repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
-.shot button.view{all:unset;display:block;width:100%;height:100%;cursor:zoom-in}
-.shot img{width:100%;height:100%;object-fit:cover;display:block}
-.acts{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:6px;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s}
-.tile:hover .acts,.tile:focus-within .acts{opacity:1;transform:none}
-.acts .btn{background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.acts form{margin:0 0 0 auto}
-.info{padding:10px 12px 12px}
-.info .name{font:500 13px/1.4 var(--mono);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.info .sub{color:var(--muted);font-size:12px;margin-top:3px;font-variant-numeric:tabular-nums}
-.blank{text-align:center;padding:70px 20px;color:var(--muted);border:1px dashed var(--line-2);border-radius:var(--radius)}
-.blank h3{color:var(--ink);font-size:20px;margin-bottom:6px}
+/* 日期条 */
+.datebar{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:22px}
+.datebar select{width:auto;flex:none;font-weight:600;padding:8px 30px 8px 12px;background:var(--paper)}
+.arrow{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink-2);flex:none}
+.arrow:hover{border-color:var(--accent);color:var(--accent)}
+.arrow[aria-disabled=true]{opacity:.35;pointer-events:none}
+.strip{flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 12px),transparent)}
+.mdays{display:none;gap:6px;padding:2px 12px;width:max-content}
+.mdays.show{display:flex}
+.mdays a{display:grid;justify-items:center;gap:3px;min-width:48px;padding:7px 8px 6px;border-radius:10px;color:var(--ink-2);border:1px solid transparent;transition:background .15s,border-color .15s}
+.mdays a b{font:650 16px/1 var(--display);font-variant-numeric:tabular-nums}
+.mdays a small{font-size:11px;color:var(--muted)}
+.mdays a:hover{background:var(--paper-2)}
+.mdays a.on{background:var(--accent);color:var(--on-accent);box-shadow:0 6px 14px -6px color-mix(in srgb,var(--accent) 70%,transparent)}
+.mdays a.on small{color:color-mix(in srgb,var(--on-accent) 80%,transparent)}
 
-dialog.lb{border:0;padding:0;background:transparent;max-width:min(1100px,94vw);width:100%;color:var(--ink)}
-dialog.lb::backdrop{background:rgba(8,14,26,.72);backdrop-filter:blur(4px)}
+/* 图片墙 */
+.gallery.masonry{columns:4 230px;column-gap:14px}
+.gallery.masonry .tile{break-inside:avoid;margin:0 0 14px}
+.gallery.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.gallery.grid .tile{margin:0}
+.gallery.grid .tile img{aspect-ratio:1/1;object-fit:cover;height:auto}
+.tile{position:relative;border-radius:var(--radius);overflow:hidden;background:var(--paper-2) repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px;border:1px solid var(--line);box-shadow:var(--shadow);animation:rise .4s cubic-bezier(.2,.7,.3,1) both;transition:box-shadow .2s,transform .2s}
+.tile:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.tile .view{all:unset;display:block;width:100%;cursor:zoom-in}
+.tile img{display:block;width:100%;height:auto;min-height:80px}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;opacity:0;transition:opacity .18s}
+.tile:hover .ov,.tile:focus-within .ov{opacity:1}
+.ov-acts{display:flex;justify-content:flex-end;gap:6px;padding:10px;pointer-events:auto}
+.ov-acts form{margin:0}
+.ib{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;border:0;cursor:pointer;background:color-mix(in srgb,var(--card) 92%,transparent);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.2);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .15s,color .15s}
+.ib:hover{background:var(--accent);color:var(--on-accent)}
+.ib.del:hover{background:var(--danger);color:#fff}
+.ib svg{width:16px;height:16px}
+.ib.md{font:700 10.5px/1 var(--mono)}
+.ov-info{margin-top:auto;padding:28px 12px 10px;background:linear-gradient(transparent,rgba(5,10,20,.72));color:#fff}
+.ov-info .name{font:500 12.5px/1.4 var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-info .sub{font-size:11.5px;opacity:.8;margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* 多选 */
+.pick{position:absolute;top:10px;left:10px;z-index:2;display:none}
+.pick input{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin:0;border-radius:7px;border:2px solid #fff;background:rgba(5,10,20,.35);box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;display:grid;place-items:center}
+.pick input:checked{background:var(--accent);border-color:var(--accent)}
+.pick input:checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.selecting .pick{display:block}
+.selecting .tile .view{cursor:pointer}
+.selecting .ov-acts{display:none}
+.tile.picked{outline:3px solid var(--accent);outline-offset:-3px}
+.tile.picked img{opacity:.82}
+.selbar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,160%);z-index:30;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 18px;border-radius:999px;background:var(--ink);color:var(--paper);box-shadow:var(--shadow-lg);transition:transform .25s cubic-bezier(.2,.8,.3,1);max-width:calc(100vw - 24px);flex-wrap:wrap}
+.selecting .selbar{transform:translate(-50%,0)}
+.selbar .count{font-weight:600;margin-right:6px;white-space:nowrap}
+.selbar .btn{background:transparent;border-color:color-mix(in srgb,var(--paper) 25%,transparent);color:var(--paper)}
+.selbar .btn:hover{background:color-mix(in srgb,var(--paper) 12%,transparent);color:var(--paper)}
+.selbar .btn-danger{color:#ff9a9a}
+
+.blank{text-align:center;padding:80px 20px;color:var(--muted);border:1.5px dashed var(--line-2);border-radius:var(--radius);background:color-mix(in srgb,var(--card) 60%,transparent)}
+.blank svg{width:44px;height:44px;color:var(--line-2);margin-bottom:10px}
+.blank h3{color:var(--ink);font-size:19px;margin-bottom:6px}
+
+/* 大图预览 */
+dialog.lb{border:0;padding:0;background:transparent;max-width:min(1180px,96vw);width:100%;color:var(--ink)}
+dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
 .lb-in{background:var(--card);border-radius:calc(var(--radius) + 2px);overflow:hidden;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 300px}
-.lb-img{background:#0a0f19 repeating-conic-gradient(#141c2a 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:320px;max-height:82vh}
-.lb-img img{max-width:100%;max-height:82vh;display:block}
+.lb-stage{position:relative;background:#0a0f19 repeating-conic-gradient(#141c2a 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:360px;max-height:84vh}
+.lb-stage img{max-width:100%;max-height:84vh;display:block}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;cursor:pointer;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;backdrop-filter:blur(6px)}
+.lb-nav:hover{background:rgba(255,255,255,.28)}
+.lb-nav svg{width:20px;height:20px}
+.lb-prev{left:14px}.lb-next{right:14px}
 .lb-side{padding:22px;display:flex;flex-direction:column;gap:14px}
-.lb-side .lb-name{font:600 15px/1.4 var(--mono);word-break:break-all}
-.lb-side .sub{color:var(--muted);font-size:13px}
-.lb-side .row{display:flex;gap:8px;flex-wrap:wrap}
-.lb-close{margin-left:auto}
+.lb-top{display:flex;justify-content:space-between;align-items:center}
+.lb-pos{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lb-name{font:600 15px/1.4 var(--mono);word-break:break-all}
+.lb-meta{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin:0}
+.lb-meta dt{color:var(--muted)}
+.lb-meta dd{margin:0;font-variant-numeric:tabular-nums}
+.lb-row{display:flex;gap:8px;flex-wrap:wrap}
+
+@media (hover:none){.ov{opacity:1}.ov-acts{display:none}.ov-info{padding:16px 10px 7px}.ov-info .sub{display:none}.selecting .ov-info{display:none}}
 @media (max-width:860px){
-  .layout{grid-template-columns:1fr}
-  .days{position:static;max-height:none}
-  .days .list{grid-template-columns:repeat(7,1fr)}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-  .acts{opacity:1;transform:none;left:8px;right:8px;bottom:8px;gap:4px}
-  .acts .btn{padding:5px 9px;font-size:12px}
-  .acts a.btn{display:none}
+  .gallery.masonry{columns:2 150px;column-gap:10px}
+  .gallery.masonry .tile{margin-bottom:10px}
+  .gallery.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .lib-head h1{font-size:24px}
+  .datebar select{max-width:42%}
   .lb-in{grid-template-columns:1fr}
+  .seg button span{display:none}
 }
 </style>
 <main class="wrap">
   {{with .Msg}}<div class="notice rise">{{.}}</div>{{end}}
-  <div class="layout">
-    <aside class="days card rise rise-1">
-      <h4>按日期</h4>
-      {{range .Groups}}
-      <details data-key="{{.Key}}">
-        <summary>{{.Label}}</summary>
-        <div class="list">{{range .Days}}<a href="/admin?d={{.Value}}"{{if eq .Value $.Day}} class="on"{{end}}>{{.Label}}</a>{{end}}</div>
-      </details>
-      {{else}}<p class="none">还没有图片</p>{{end}}
-    </aside>
-    <section>
-      <div class="page-head rise rise-2">
-        <div>
-          <span class="eyebrow">Library</span>
-          <h1>{{if .Title}}{{.Title}}{{else if .Day}}{{dayLabel .Day}}{{else}}图片{{end}}</h1>
-          <div class="sub">共 {{len .Images}} 张{{if .Images}}，悬停图片可复制或删除，点击查看大图{{end}}</div>
-        </div>
-        {{with .Extra}}<div>{{.}}</div>{{end}}
+
+  <div class="lib-head rise">
+    <div>
+      <span class="eyebrow">Library</span>
+      <h1>{{if .Title}}{{.Title}}{{else if .Day}}{{dayLabel .Day}}{{else}}图片{{end}}</h1>
+      <div class="stats">
+        <span class="stat"><b>{{len .Images}}</b> 张</span>
+        {{if .Images}}{{with .Total}}<span class="stat">共 <b>{{.}}</b></span>{{end}}{{end}}
+        {{with .Extra}}<span class="stat">{{.}}</span>{{end}}
       </div>
-      {{if .Images}}
-      <div class="grid">
-        {{range $i, $img := .Images}}
-        <article class="tile" style="animation-delay:{{if lt $i 24}}{{$i}}0ms{{else}}0ms{{end}}">
-          <div class="shot">
-            <button type="button" class="view" data-url="{{.URL}}" data-file="{{.Name}}" data-rel="{{.Rel}}" data-meta="{{.Time}} · {{.Size}}" aria-label="查看大图"><img src="{{.URL}}" alt="" loading="lazy"></button>
-            <div class="acts">
-              <button type="button" class="btn btn-sm" data-copy="{{.URL}}" data-copy-msg="已复制链接">复制链接</button>
-              <a class="btn btn-sm" href="{{.URL}}" target="_blank" rel="noopener">打开</a>
-              <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')">
-                <input type="hidden" name="f" value="{{.Rel}}">
-                <button class="btn btn-sm btn-danger" type="submit">删除</button>
-              </form>
-            </div>
-          </div>
-          <div class="info">
-            <div class="name">{{.Name}}</div>
-            <div class="sub">{{.Time}} · {{.Size}}</div>
-          </div>
-        </article>
-        {{end}}
+    </div>
+    {{if .Images}}
+    <div class="tools">
+      <div class="seg" role="group" aria-label="排列方式">
+        <button type="button" data-view="masonry" title="瀑布流"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="11" rx="2"/><rect x="13" y="3" width="8" height="7" rx="2"/><rect x="3" y="16" width="8" height="5" rx="2"/><rect x="13" y="12" width="8" height="9" rx="2"/></svg><span>瀑布流</span></button>
+        <button type="button" data-view="grid" title="网格"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>网格</span></button>
       </div>
-      {{else}}
-      <div class="blank rise rise-3">
-        <h3>这里还空着</h3>
-        <p>{{if .Day}}这一天没有图片。{{end}}去 <a href="/">上传页</a> 传几张吧。</p>
-      </div>
-      {{end}}
-    </section>
+      <button type="button" class="btn btn-sm" id="selbtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>多选</button>
+    </div>
+    {{end}}
   </div>
+
+  {{if .Groups}}
+  <div class="datebar card rise rise-1">
+    <a class="arrow" href="/admin?d={{.Prev}}" title="前一天"{{if not .Prev}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <select id="month" aria-label="选择月份">{{range .Groups}}<option value="{{.Key}}">{{.Label}}</option>{{end}}</select>
+    <div class="strip" id="strip">
+      {{range .Groups}}<div class="mdays" data-key="{{.Key}}">{{range .Days}}<a href="/admin?d={{.Value}}"{{if eq .Value $.Day}} class="on"{{end}} title="{{.Value}} · {{.Count}} 张"><b>{{.Num}}</b><small>{{.Count}} 张</small></a>{{end}}</div>{{end}}
+    </div>
+    <a class="arrow" href="/admin?d={{.Next}}" title="后一天"{{if not .Next}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>
+  </div>
+  {{end}}
+
+  {{if .Images}}
+  <div class="gallery masonry" id="gallery">
+    {{range $i, $img := .Images}}
+    <figure class="tile" style="animation-delay:{{if lt $i 20}}{{$i}}0ms{{else}}0ms{{end}}" data-url="{{.URL}}" data-file="{{.Name}}" data-rel="{{.Rel}}" data-time="{{.Time}}" data-size="{{.Size}}" data-dim="{{if .W}}{{.W}} × {{.H}}{{end}}">
+      <label class="pick"><input type="checkbox" value="{{.Rel}}" aria-label="选择 {{.Name}}"></label>
+      <button type="button" class="view" aria-label="查看大图"><img src="{{.URL}}" alt="" loading="lazy"{{if .W}} width="{{.W}}" height="{{.H}}"{{end}}></button>
+      <div class="ov">
+        <div class="ov-acts">
+          <button type="button" class="ib" data-copy="{{.URL}}" data-copy-msg="已复制链接" title="复制链接"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+          <button type="button" class="ib md" data-copy="![]({{.URL}})" data-copy-msg="已复制 Markdown" title="复制 Markdown">MD</button>
+          <a class="ib" href="{{.URL}}" target="_blank" rel="noopener" title="新标签页打开"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+          <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')">
+            <input type="hidden" name="f" value="{{.Rel}}"><input type="hidden" name="back" class="back">
+            <button class="ib del" type="submit" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+          </form>
+        </div>
+        <figcaption class="ov-info">
+          <div class="name">{{.Name}}</div>
+          <div class="sub">{{.Time}} · {{.Size}}{{if .W}} · {{.W}}×{{.H}}{{end}}</div>
+        </figcaption>
+      </div>
+    </figure>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="blank rise rise-2">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg>
+    <h3>这里还空着</h3>
+    <p>{{if .Day}}这一天没有图片。{{end}}去 <a href="/">上传页</a> 传几张吧。</p>
+  </div>
+  {{end}}
 </main>
+
+<div class="selbar" id="selbar" role="toolbar" aria-label="批量操作">
+  <span class="count" id="selcount">已选 0 张</span>
+  <button type="button" class="btn btn-sm" id="selall">全选</button>
+  <button type="button" class="btn btn-sm" id="selcopy">复制链接</button>
+  <button type="button" class="btn btn-sm" id="selmd">复制 Markdown</button>
+  <button type="button" class="btn btn-sm btn-danger" id="seldel">删除</button>
+  <button type="button" class="btn btn-sm" id="selexit">完成</button>
+</div>
+<form method="post" action="/admin/delete" id="bulkdel" hidden><input type="hidden" name="back" class="back"></form>
 
 <dialog class="lb" id="lb">
   <div class="lb-in">
-    <div class="lb-img"><img id="lb-img" alt=""></div>
+    <div class="lb-stage">
+      <img id="lb-img" alt="">
+      <button type="button" class="lb-nav lb-prev" id="lb-prev" aria-label="上一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" class="lb-nav lb-next" id="lb-next" aria-label="下一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
     <div class="lb-side">
-      <div class="row"><button type="button" class="btn btn-sm btn-ghost lb-close" id="lb-close">关闭 <kbd>Esc</kbd></button></div>
+      <div class="lb-top"><span class="lb-pos" id="lb-pos"></span><button type="button" class="btn btn-sm btn-ghost" id="lb-close">关闭 <kbd>Esc</kbd></button></div>
       <div class="lb-name" id="lb-name"></div>
-      <div class="sub" id="lb-meta"></div>
+      <dl class="lb-meta"><dt>尺寸</dt><dd id="lb-dim"></dd><dt>大小</dt><dd id="lb-size"></dd><dt>上传</dt><dd id="lb-time"></dd></dl>
       <input type="text" class="input-mono" id="lb-url" readonly>
-      <div class="row">
+      <div class="lb-row">
         <button type="button" class="btn btn-primary btn-sm" id="lb-copy">复制链接</button>
         <button type="button" class="btn btn-sm" id="lb-md">复制 Markdown</button>
         <a class="btn btn-sm" id="lb-open" target="_blank" rel="noopener">打开原图</a>
       </div>
       <form method="post" action="/admin/delete" id="lb-del" style="margin-top:auto">
-        <input type="hidden" name="f" id="lb-f">
+        <input type="hidden" name="f" id="lb-f"><input type="hidden" name="back" class="back">
         <button type="submit" class="btn btn-sm btn-danger">删除这张图片</button>
       </form>
     </div>
@@ -129,25 +207,110 @@ dialog.lb::backdrop{background:rgba(8,14,26,.72);backdrop-filter:blur(4px)}
 </dialog>
 <script>
 (function () {
-  var cur = document.querySelector('.days a.on');
-  var open = cur ? cur.closest('details') : document.querySelector('.days details');
-  if (open) open.open = true;
-  if (cur) cur.scrollIntoView({ block: 'nearest' });
-
-  var lb = document.getElementById('lb');
-  if (!lb.showModal) return;
   var $ = function (id) { return document.getElementById(id); };
-  document.querySelectorAll('.shot .view').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var url = b.dataset.url;
-      $('lb-img').src = url;
-      $('lb-name').textContent = b.dataset.file;
-      $('lb-meta').textContent = b.dataset.meta;
-      $('lb-url').value = url;
-      $('lb-open').href = url;
-      $('lb-f').value = b.dataset.rel;
-      lb.showModal();
+  // 删除后回到当前页面（去掉旧的提示信息参数）
+  var qs = location.search.replace(/[?&]msg=[^&]*/g, '').replace(/^&/, '?');
+  var back = location.pathname + qs;
+  document.querySelectorAll('input.back').forEach(function (i) { i.value = back; });
+
+  // 日期条：显示当前日期所在的月份
+  var month = $('month'), cur = document.querySelector('.mdays a.on');
+  function showMonth(key) {
+    document.querySelectorAll('.mdays').forEach(function (m) { m.classList.toggle('show', m.dataset.key === key); });
+  }
+  if (month) {
+    if (cur) month.value = cur.parentNode.dataset.key;
+    showMonth(month.value);
+    month.addEventListener('change', function () { showMonth(month.value); $('strip').scrollLeft = 0; });
+    if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+
+  var gallery = $('gallery');
+  if (!gallery) return;
+  var tiles = Array.prototype.slice.call(gallery.querySelectorAll('.tile'));
+
+  // 排列方式，记住选择
+  var view = 'masonry';
+  try { view = localStorage.getItem('picnook.view') || 'masonry'; } catch (e) {}
+  function setView(v) {
+    view = v === 'grid' ? 'grid' : 'masonry';
+    gallery.className = 'gallery ' + view;
+    document.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('on', b.dataset.view === view); });
+    try { localStorage.setItem('picnook.view', view); } catch (e) {}
+  }
+  document.querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
+  setView(view);
+
+  // 多选
+  var selecting = false;
+  function box(t) { return t.querySelector('.pick input'); }
+  function picked() { return tiles.filter(function (t) { return box(t).checked; }); }
+  function refresh() {
+    var n = picked().length;
+    $('selcount').textContent = '已选 ' + n + ' 张';
+    ['selcopy', 'selmd', 'seldel'].forEach(function (id) { $(id).disabled = n === 0; });
+    $('selall').textContent = n === tiles.length ? '取消全选' : '全选';
+    tiles.forEach(function (t) { t.classList.toggle('picked', box(t).checked); });
+  }
+  function setSelecting(on) {
+    selecting = on;
+    document.body.classList.toggle('selecting', on);
+    if (!on) tiles.forEach(function (t) { box(t).checked = false; });
+    refresh();
+  }
+  $('selbtn').addEventListener('click', function () { setSelecting(!selecting); });
+  $('selexit').addEventListener('click', function () { setSelecting(false); });
+  $('selall').addEventListener('click', function () {
+    var all = picked().length !== tiles.length;
+    tiles.forEach(function (t) { box(t).checked = all; });
+    refresh();
+  });
+  gallery.addEventListener('change', function (e) { if (e.target.matches('.pick input')) refresh(); });
+  $('selcopy').addEventListener('click', function () {
+    var p = picked(); copyText(p.map(function (t) { return t.dataset.url; }).join('\n'), '已复制 ' + p.length + ' 条链接');
+  });
+  $('selmd').addEventListener('click', function () {
+    var p = picked(); copyText(p.map(function (t) { return '![](' + t.dataset.url + ')'; }).join('\n'), '已复制 ' + p.length + ' 条 Markdown');
+  });
+  $('seldel').addEventListener('click', function () {
+    var p = picked();
+    if (!p.length || !confirm('确定删除选中的 ' + p.length + ' 张图片？已贴出去的链接会失效（图片会移到回收目录）。')) return;
+    var f = $('bulkdel');
+    p.forEach(function (t) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'f'; i.value = t.dataset.rel; f.appendChild(i); });
+    f.submit();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && selecting && !$('lb').open) setSelecting(false); });
+
+  // 大图预览，支持左右键切换
+  var lb = $('lb'), idx = 0;
+  function show(i) {
+    idx = (i + tiles.length) % tiles.length;
+    var t = tiles[idx].dataset;
+    $('lb-img').src = t.url;
+    $('lb-name').textContent = t.file;
+    $('lb-dim').textContent = t.dim || '—';
+    $('lb-size').textContent = t.size;
+    $('lb-time').textContent = t.time;
+    $('lb-url').value = t.url;
+    $('lb-open').href = t.url;
+    $('lb-f').value = t.rel;
+    $('lb-pos').textContent = (idx + 1) + ' / ' + tiles.length;
+    $('lb-prev').hidden = $('lb-next').hidden = tiles.length < 2;
+  }
+  tiles.forEach(function (tile, i) {
+    tile.querySelector('.view').addEventListener('click', function () {
+      if (selecting) { var c = box(tile); c.checked = !c.checked; refresh(); return; }
+      if (!lb.showModal) { window.open(tile.dataset.url, '_blank'); return; }
+      show(i); lb.showModal();
     });
+  });
+  if (!lb.showModal) return;
+  $('lb-prev').addEventListener('click', function () { show(idx - 1); });
+  $('lb-next').addEventListener('click', function () { show(idx + 1); });
+  lb.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
   });
   $('lb-close').addEventListener('click', function () { lb.close(); });
   lb.addEventListener('click', function (e) { if (e.target === lb) lb.close(); });

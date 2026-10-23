@@ -4,7 +4,9 @@ package main
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net"
@@ -91,9 +93,48 @@ func healthcheck() {
 	os.Exit(0)
 }
 
+// resetPassword 清除后台改过的密码，重启后恢复使用 PICNOOK_PASSWORD 登录。
+// 用法：picnook reset-password [配置目录]，Docker 里是 docker compose exec picnook /picnook reset-password
+func resetPassword(args []string) {
+	dir := envOr("PICNOOK_CONFIG_DIR", "")
+	if len(args) > 0 {
+		dir = args[0]
+	}
+	if dir == "" {
+		log.Fatal("请指定配置目录：picnook reset-password <配置目录>（Docker 内为 /data/config）")
+	}
+	p := filepath.Join(dir, "settings.json")
+	b, err := os.ReadFile(p)
+	if err != nil {
+		log.Fatalf("读取 %s 失败：%v", p, err)
+	}
+	// 用通用的 map 读写，只去掉密码字段，其他设置原样保留
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(b, &m); err != nil {
+		log.Fatalf("解析 %s 失败：%v", p, err)
+	}
+	if _, ok := m["password_hash"]; !ok {
+		fmt.Println("后台没有改过密码，当前使用的就是 PICNOOK_PASSWORD，无需重置")
+		os.Exit(0)
+	}
+	delete(m, "password_hash")
+	out, err := json.MarshalIndent(m, "", "  ")
+	if err == nil {
+		err = os.WriteFile(p, out, 0o600)
+	}
+	if err != nil {
+		log.Fatalf("写入 %s 失败：%v", p, err)
+	}
+	fmt.Println("已清除后台设置的密码。重启 PicNook 后，用 PICNOOK_PASSWORD 登录")
+	os.Exit(0)
+}
+
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		healthcheck()
+	}
+	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
+		resetPassword(os.Args[2:])
 	}
 	var cfg config
 	var maxMB int64
@@ -272,6 +313,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("/admin/settings", a.handleSettings)
 	mux.HandleFunc("/admin/settings/preview", a.handleWatermarkPreview)
 	mux.HandleFunc("/admin/font", a.handleFont)
+	mux.HandleFunc("/admin/password", a.handlePassword)
 	mux.HandleFunc("/admin/tokens", a.handleTokens)
 	mux.HandleFunc("/admin/tokens/import", a.handleTokenImport)
 	mux.HandleFunc("/admin/tokens/files", a.handleTokenFiles)

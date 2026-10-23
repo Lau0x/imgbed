@@ -57,6 +57,9 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
 .search{display:flex;gap:8px;margin-bottom:12px;max-width:440px}
 .addtok{display:grid;grid-template-columns:1.6fr 1fr auto auto;gap:10px;align-items:center}
 .sub-h{font:600 15px var(--display);margin:26px 0 10px}
+.pwform{display:grid;gap:12px;max-width:420px}
+.pwform label{display:grid;gap:6px;font-size:14px;font-weight:600}
+.pwnote{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .font-now{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .filebox{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .filebox input[type=file]{font-size:13px;color:var(--muted)}
@@ -87,6 +90,7 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
       <a href="#watermark">水印</a>
       <a href="#hotlink">防盗链</a>
       <a href="#tokens">API Token</a>
+      <a href="#account">账户安全</a>
     </nav>
     <div>
       <form method="post" action="/admin/settings" id="settings-form">
@@ -282,6 +286,21 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
           <textarea name="php" class="input-mono" placeholder="粘贴原站点 config/api_key.php 的全部内容，会保留原来的 ID、添加时间和有效期"></textarea>
           <div style="margin-top:10px"><button type="submit" class="btn">导入</button></div>
         </form>
+      </section>
+
+      <section class="card" id="account">
+        <div class="sec-head"><div><h2>账户安全</h2><p class="desc">修改后台登录密码。改完后，其他设备上的登录会失效，需要用新密码重新登录</p></div></div>
+        <div class="pwnote">
+          {{if .EnvPassword}}<span class="badge">当前使用 .env 里的 PICNOOK_PASSWORD</span>{{else}}<span class="badge badge-ok">当前使用后台设置的密码</span>{{end}}
+        </div>
+        <form method="post" action="/admin/password" class="pwform" autocomplete="off">
+          <input type="text" name="username" value="admin" autocomplete="username" hidden>
+          <label>当前密码<input type="password" name="current" autocomplete="current-password" required></label>
+          <label>新密码<input type="password" name="new" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+          <label>再输入一次新密码<input type="password" name="confirm" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+          <div><button class="btn btn-primary" type="submit">修改密码</button></div>
+        </form>
+        <p class="muted" style="margin:14px 0 0">新密码加盐哈希后保存在配置目录的 settings.json 里，会覆盖 .env 里的密码。忘记新密码时，在服务器上执行 <code>docker compose exec picnook /picnook reset-password</code> 再重启，就能重新用 .env 里的密码登录。</p>
       </section>
     </div>
   </div>

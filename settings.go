@@ -49,6 +49,8 @@ type Settings struct {
 	AllowedRefs   []string `json:"allowed_referers"`
 	AllowEmptyRef bool     `json:"allow_empty_referer"`
 	Tokens        []Token  `json:"tokens"`
+	// 后台修改过的登录密码（pbkdf2-sha256 加盐哈希），为空时使用 PICNOOK_PASSWORD
+	PasswordHash string `json:"password_hash,omitempty"`
 }
 
 func (s Settings) clone() Settings {

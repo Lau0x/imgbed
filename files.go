@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"errors"
 	"fmt"
+	"image"
 	"log"
 	"net/http"
 	"net/url"
@@ -14,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/gen2brain/webp"
 )
 
 var contentTypes = map[string]string{
@@ -172,7 +175,7 @@ func (a *app) recentDays(limit int) []string {
 	return days
 }
 
-// monthGroup 把日期列表按月分组，供管理页侧栏折叠显示
+// monthGroup 把日期列表按月分组，供管理页的日期条使用
 type monthGroup struct {
 	Key   string // 2026/10
 	Label string // 2026 年 10 月
@@ -182,6 +185,33 @@ type monthGroup struct {
 type dayLink struct {
 	Value string // 2026/10/23
 	Label string // 23 日
+	Num   string // 23
+	Count int    // 当天的图片数量
+}
+
+// dayGroups 按月分组并统计每天的图片数量
+func (a *app) dayGroups(days []string) []monthGroup {
+	groups := dayGroups(days)
+	for gi := range groups {
+		for di := range groups[gi].Days {
+			groups[gi].Days[di].Count = a.countDay(groups[gi].Days[di].Value)
+		}
+	}
+	return groups
+}
+
+func (a *app) countDay(day string) int {
+	entries, err := os.ReadDir(filepath.Join(a.cfg.imagesDir, filepath.FromSlash(day)))
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, e := range entries {
+		if e.Type().IsRegular() && !strings.HasPrefix(e.Name(), ".") && imageType(e.Name()) != "" {
+			n++
+		}
+	}
+	return n
 }
 
 func dayGroups(days []string) []monthGroup {
@@ -195,18 +225,39 @@ func dayGroups(days []string) []monthGroup {
 			out = append(out, monthGroup{Key: key, Label: d[:4] + " 年 " + d[5:7] + " 月"})
 		}
 		g := &out[len(out)-1]
-		g.Days = append(g.Days, dayLink{Value: d, Label: d[8:] + " 日"})
+		g.Days = append(g.Days, dayLink{Value: d, Label: d[8:] + " 日", Num: strings.TrimPrefix(d[8:], "0")})
 	}
 	return out
 }
 
 type imageItem struct {
-	Rel  string
-	URL  string
-	Name string
-	Size string
-	Time string
-	mod  time.Time
+	Rel   string
+	URL   string
+	Name  string
+	Size  string
+	Time  string
+	W, H  int // 图片尺寸，取不到时为 0
+	bytes int64
+	mod   time.Time
+}
+
+// imageDims 只读取文件头获取尺寸，用于瀑布流提前占位
+func imageDims(p string) (int, int) {
+	f, err := os.Open(p)
+	if err != nil {
+		return 0, 0
+	}
+	defer f.Close()
+	var cfg image.Config
+	if strings.EqualFold(path.Ext(p), ".webp") {
+		cfg, err = webp.DecodeConfig(f)
+	} else {
+		cfg, _, err = image.DecodeConfig(f)
+	}
+	if err != nil {
+		return 0, 0
+	}
+	return cfg.Width, cfg.Height
 }
 
 func humanSize(n int64) string {
@@ -235,13 +286,17 @@ func (a *app) listDay(day string) []imageItem {
 			continue
 		}
 		rel := day + "/" + name
+		w, h := imageDims(filepath.Join(a.cfg.imagesDir, filepath.FromSlash(rel)))
 		items = append(items, imageItem{
-			Rel:  rel,
-			URL:  a.cfg.baseURL + "/i/" + rel,
-			Name: name,
-			Size: humanSize(info.Size()),
-			Time: info.ModTime().Format("15:04:05"),
-			mod:  info.ModTime(),
+			Rel:   rel,
+			URL:   a.cfg.baseURL + "/i/" + rel,
+			Name:  name,
+			Size:  humanSize(info.Size()),
+			Time:  info.ModTime().Format("15:04:05"),
+			W:     w,
+			H:     h,
+			bytes: info.Size(),
+			mod:   info.ModTime(),
 		})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].mod.After(items[j].mod) })
@@ -262,8 +317,25 @@ func (a *app) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	if dayRe.MatchString(day) {
 		images = a.listDay(day)
 	}
+	var total int64
+	for _, it := range images {
+		total += it.bytes
+	}
+	// days 按时间倒序：前一天是更早的日期，后一天是更新的日期
+	var prev, next string
+	for i, d := range days {
+		if d == day {
+			if i+1 < len(days) {
+				prev = days[i+1]
+			}
+			if i > 0 {
+				next = days[i-1]
+			}
+		}
+	}
 	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
-		"Groups": dayGroups(days), "Day": day, "Images": images, "Msg": r.URL.Query().Get("msg"),
+		"Groups": a.dayGroups(days), "Day": day, "Images": images, "Msg": r.URL.Query().Get("msg"),
+		"Total": humanSize(total), "Prev": prev, "Next": next,
 	})
 }
 
@@ -312,9 +384,36 @@ func (a *app) handleAdminDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "禁止访问", http.StatusForbidden)
 		return
 	}
-	rel := r.PostFormValue("f")
-	msg := deleteMessage(a.trash(rel))
-	http.Redirect(w, r, "/admin?d="+url.QueryEscape(path.Dir(rel))+"&msg="+url.QueryEscape(msg), http.StatusSeeOther)
+	r.ParseForm()
+	rels := r.PostForm["f"]
+	if len(rels) == 0 {
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+	var msg string
+	if len(rels) == 1 {
+		msg = deleteMessage(a.trash(rels[0]))
+	} else {
+		ok := 0
+		for _, rel := range rels {
+			if a.trash(rel) == nil {
+				ok++
+			}
+		}
+		msg = fmt.Sprintf("已删除 %d 张图片（已移到回收目录）", ok)
+		if ok < len(rels) {
+			msg += fmt.Sprintf("，%d 张删除失败", len(rels)-ok)
+		}
+	}
+	back := r.PostFormValue("back")
+	if !strings.HasPrefix(back, "/admin") || strings.HasPrefix(back, "//") {
+		back = "/admin?d=" + url.QueryEscape(path.Dir(rels[0]))
+	}
+	sep := "?"
+	if strings.Contains(back, "?") {
+		sep = "&"
+	}
+	http.Redirect(w, r, back+sep+"msg="+url.QueryEscape(msg), http.StatusSeeOther)
 }
 
 // handleSignedDelete 处理 API 返回的 del 链接：GET 只显示确认页，POST 才真正删除

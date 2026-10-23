@@ -364,12 +364,25 @@ curl -sI -H 'Origin: https://example.com' https://img.example.com/i/<任意一�
 | 水印 | 文字、九宫格位置、字号（占图片短边的百分比）、颜色、不透明度，带实时预览。内置思源黑体粗体（GB2312 的 6763 个常用汉字），中文水印开箱即用；要用生僻字或换字体时可以上传 ttf / otf / ttc |
 | 防盗链 | Referer 白名单，`*.example.com` 匹配所有子域名；可选是否允许没有 Referer 的访问 |
 | API Token | 新增、修改有效期、禁用、删除；查看某个 token 上传的图片，一键删除它的全部上传；从 EasyImage 的 `api_key.php` 导入 |
+| 账户安全 | 修改后台登录密码。新密码加盐哈希（PBKDF2-SHA256）后保存在 `settings.json`，会覆盖 `PICNOOK_PASSWORD`；改完后其他设备上的登录全部失效 |
 
 几点说明：
 
 - 压缩、转格式、水印只对新上传的图片生效，不会改动已有图片。
 - 重新编码会去掉照片的 EXIF 信息（包括拍摄地点），方向会先按 EXIF 转正。
 - 上传数量按配置目录里的 `uploads.log` 统计，只包含本程序上线后的上传。
+
+### 忘记密码
+
+- 没在后台改过密码：密码就是 `.env` 里的 `PICNOOK_PASSWORD`，用 `grep PICNOOK_PASSWORD .env` 查看。
+- 在后台改过密码：在 `docker-compose.yml` 所在目录执行下面两条命令，清除后台设置的密码并重启，然后用 `PICNOOK_PASSWORD` 登录。其他设置和 token 都会保留。
+
+```bash
+docker compose exec picnook /picnook reset-password
+docker compose restart
+```
+
+直接运行（systemd）的话，执行 `picnook reset-password <配置目录>`，再 `sudo systemctl restart picnook`。
 
 ## 上传工具配置
 
@@ -429,7 +442,7 @@ docker compose pull && docker compose up -d
 | 环境变量 | 命令行参数 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `PICNOOK_BASE` | `-base` | 无，必填 | 图床对外网址，返回的链接以它开头 |
-| `PICNOOK_PASSWORD` | 无 | 无，必填 | 后台密码，至少 8 位 |
+| `PICNOOK_PASSWORD` | 无 | 无，必填 | 后台密码，至少 8 位。在后台「设置 → 账户安全」改过密码后，以后台的为准 |
 | `PICNOOK_SECRET` | 无 | 无，必填 | 签名密钥，至少 32 个字符。更换后所有人需要重新登录，旧的删除链接失效 |
 | `PICNOOK_TOKENS` | 无 | 空 | API token，逗号分隔。只在首次启动时导入后台，之后在后台管理 |
 | `PICNOOK_IMAGES` | `-images` | Docker 内为 `/data/i` | 图片目录，对应网址里的 `/i/` |

@@ -144,18 +144,19 @@ func (a *app) handleSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	_, custom := a.currentFont()
 	a.render(w, http.StatusOK, "settings.html", map[string]interface{}{
-		"S":          s,
-		"Refs":       strings.Join(s.AllowedRefs, "\n"),
-		"Tokens":     rows,
-		"TokenTotal": len(s.Tokens),
-		"Q":          q,
-		"NewToken":   randomToken(),
-		"APIURL":     a.cfg.baseURL + "/api/index.php",
-		"CustomFont": custom,
-		"Missing":    a.missingGlyphs(s.WaterText),
-		"Positions":  waterPositions,
-		"Msg":        r.URL.Query().Get("msg"),
-		"Now":        now.Unix(),
+		"S":           s,
+		"Refs":        strings.Join(s.AllowedRefs, "\n"),
+		"Tokens":      rows,
+		"TokenTotal":  len(s.Tokens),
+		"Q":           q,
+		"NewToken":    randomToken(),
+		"APIURL":      a.cfg.baseURL + "/api/index.php",
+		"CustomFont":  custom,
+		"Missing":     a.missingGlyphs(s.WaterText),
+		"Positions":   waterPositions,
+		"Msg":         r.URL.Query().Get("msg"),
+		"Now":         now.Unix(),
+		"EnvPassword": s.PasswordHash == "",
 	})
 }
 
@@ -377,7 +378,7 @@ func (a *app) handleTokenFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].mod.After(items[j].mod) })
 	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
-		"Groups": dayGroups(a.recentDays(180)),
+		"Groups": a.dayGroups(a.recentDays(180)),
 		"Day":    "",
 		"Title":  fmt.Sprintf("Token #%d 上传的图片", tok.ID),
 		"Extra":  template.HTML(`<a href="/admin/settings#tokens">返回 Token 管理</a>`),
@@ -456,4 +457,46 @@ func (a *app) handleWatermarkPreview(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "no-store")
 	png.Encode(w, img)
+}
+
+// handlePassword 修改后台登录密码：校验当前密码后保存新密码的加盐哈希，其他设备上的登录随之失效
+func (a *app) handlePassword(w http.ResponseWriter, r *http.Request) {
+	if !a.requireAdmin(w, r, true) {
+		return
+	}
+	ip := a.clientIP(r)
+	if a.limiter.blocked(ip) {
+		backTo(w, r, "失败次数过多，请 15 分钟后再试", "account")
+		return
+	}
+	if !a.checkPassword(r.PostFormValue("current")) {
+		a.limiter.fail(ip)
+		backTo(w, r, "当前密码不正确", "account")
+		return
+	}
+	next := r.PostFormValue("new")
+	if err := checkPasswordPolicy(next); err != nil {
+		backTo(w, r, err.Error(), "account")
+		return
+	}
+	if next != r.PostFormValue("confirm") {
+		backTo(w, r, "两次输入的新密码不一致", "account")
+		return
+	}
+	hash, err := hashPassword(next)
+	if err == nil {
+		err = a.store.update(func(s *Settings) error {
+			s.PasswordHash = hash
+			return nil
+		})
+	}
+	if err != nil {
+		log.Printf("保存新密码失败：%v", err)
+		backTo(w, r, "保存新密码失败", "account")
+		return
+	}
+	a.limiter.reset(ip)
+	log.Printf("后台密码已修改（来源 %s）", ip)
+	a.setSession(w) // 当前设备换发新的登录状态，其他设备需要重新登录
+	backTo(w, r, "密码已修改，其他设备上的登录已失效", "account")
 }

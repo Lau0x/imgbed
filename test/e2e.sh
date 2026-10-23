@@ -14,12 +14,15 @@ FAILS=0
   && CGO_ENABLED=0 go build -tags nodynamic -o "$W/fixtool" ./test/fixtures) || exit 1
 "$W/fixtool" "$W" || exit 1
 
-PICNOOK_PASSWORD=testpass123 PICNOOK_SECRET=0123456789abcdef0123456789abcdef PICNOOK_TOKENS=$TOKEN \
-PICNOOK_LISTEN=127.0.0.1:$PORT PICNOOK_IMAGES="$W/site/i" PICNOOK_BASE="$B" PICNOOK_EXTRA_DIRS="images=$W/site/images" \
-  "$W/picnook" > "$W/server.log" 2>&1 &
-PID=$!
+start_server() {
+  PICNOOK_PASSWORD=testpass123 PICNOOK_SECRET=0123456789abcdef0123456789abcdef PICNOOK_TOKENS=$TOKEN \
+  PICNOOK_LISTEN=127.0.0.1:$PORT PICNOOK_IMAGES="$W/site/i" PICNOOK_BASE="$B" PICNOOK_EXTRA_DIRS="images=$W/site/images" \
+    "$W/picnook" >> "$W/server.log" 2>&1 &
+  PID=$!
+  for _ in $(seq 50); do curl -s "$B/healthz" >/dev/null && break; sleep 0.1; done
+}
+start_server
 trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null; rm -rf "$W"' EXIT
-for _ in $(seq 50); do curl -s "$B/healthz" >/dev/null && break; sleep 0.1; done
 
 code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 field() { grep -o "\"$1\":\"[^\"]*\"" | cut -d'"' -f4; }
@@ -179,6 +182,40 @@ save "max_mb=10&quality=80&hotlink=on" >/dev/null
 check "关闭直接访问后空 Referer 被拒" "$(code $IMG)" 403
 save "$BASESET" >/dev/null
 check "关闭防盗链后外站可用" "$(code -H 'Referer: https://evil.com/p' $IMG)" 200
+
+echo "== 批量删除 =="
+U1=$(api $W/fixtures/a.png $TOKEN | field url)
+U2=$(api $W/fixtures/white.png $TOKEN | field url)
+check "批量删除提示删除了 2 张" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" --data "f=${U1#$B/i/}&f=${U2#$B/i/}&back=/admin" $B/admin/delete | grep -c 'msg=%E5%B7%B2%E5%88%A0%E9%99%A4+2')" 1
+check "两张图都已删除" "$(code "$U1") $(code "$U2")" "404 404"
+check "删除后回到指定页面" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" --data "f=nope.png&back=/admin/settings" $B/admin/delete | cut -d'?' -f1)" "$B/admin/settings"
+check "回跳地址不能指向外站" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" --data "f=nope.png&back=//evil.com/admin" $B/admin/delete | grep -c evil.com)" 0
+check "日期条显示每天的数量" "$([ "$(curl -s -b $J $B/admin | grep -c '张</small>')" -gt 0 ] && echo yes)" yes
+
+echo "== 修改密码 =="
+J2="$W/cookies2.txt"
+curl -s -o /dev/null -c $J2 -H "$O" -d password=testpass123 $B/login
+pw() { curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" --data "$1" $B/admin/password; }
+check "无 Origin 改密码被拒" "$(code -b $J --data 'current=testpass123&new=newpass12345&confirm=newpass12345' $B/admin/password)" 403
+check "当前密码错误被拒" "$(pw 'current=wrong&new=newpass12345&confirm=newpass12345' | grep -c 'msg=%E5%BD%93%E5%89%8D')" 1
+check "两次输入不一致被拒" "$(pw 'current=testpass123&new=newpass12345&confirm=other12345' | grep -c 'msg=%E4%B8%A4')" 1
+check "新密码太短被拒" "$(pw 'current=testpass123&new=short&confirm=short' | grep -c 'msg=%E6%96%B0')" 1
+check "被拒后密码没变" "$(code -H "$O" -d password=testpass123 $B/login)" 303
+check "修改密码成功" "$(curl -s -o /dev/null -w '%{http_code}' -b $J -c $J -H "$O" --data 'current=testpass123&new=newpass12345&confirm=newpass12345' $B/admin/password)" 303
+check "当前设备保持登录" "$(code -b $J $B/admin)" 200
+check "其他设备的登录失效" "$(code -b $J2 $B/admin)" 303
+check "旧密码不能登录" "$(code -H "$O" -d password=testpass123 $B/login)" 401
+check "新密码可以登录" "$(code -H "$O" -d password=newpass12345 $B/login)" 303
+check "配置里不存明文密码" "$(grep -c 'newpass12345' $W/site/picnook-config/settings.json)" 0
+check "配置里存的是加盐哈希" "$(grep -c '"password_hash": "pbkdf2-sha256\$600000\$' $W/site/picnook-config/settings.json)" 1
+check "设置页显示正在用后台密码" "$(curl -s -b $J $B/admin/settings | grep -c '当前使用后台设置的密码')" 1
+
+echo "== 重置密码 =="
+check "reset-password 清除后台密码" "$("$W/picnook" reset-password "$W/site/picnook-config" >/dev/null 2>&1; echo $?) $(grep -c password_hash $W/site/picnook-config/settings.json)" "0 0"
+kill $PID; wait $PID 2>/dev/null; start_server
+check "重启后用 .env 密码登录" "$(code -H "$O" -d password=testpass123 $B/login)" 303
+check "重置后 token 等设置保留" "$(api $W/fixtures/a.png $TOKEN | grep -o '"code":[0-9]*')" '"code":200'
+check "再次重置时提示无需重置" "$("$W/picnook" reset-password "$W/site/picnook-config" 2>&1 | grep -c '无需重置')" 1
 
 echo "== 健康检查 =="
 check "healthcheck 子命令" "$(PICNOOK_LISTEN=127.0.0.1:$PORT "$W/picnook" healthcheck; echo $?)" 0
