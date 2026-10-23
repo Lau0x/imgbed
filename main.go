@@ -30,6 +30,7 @@ type config struct {
 	trashDir  string
 	configDir string // settings.json、上传日志和水印字体放在这里
 	extraDirs []extraDir
+	imageCORS bool // 图片响应是否带 Access-Control-Allow-Origin；反向代理已经加了时要关掉，否则会出现两个值
 	baseURL   string
 	password  string
 	secret    []byte
@@ -96,7 +97,7 @@ func main() {
 	}
 	var cfg config
 	var maxMB int64
-	var trusted, extra string
+	var trusted, extra, imageCORS string
 	defaultMB, err := strconv.ParseInt(envOr("PICNOOK_MAX_MB", "10"), 10, 64)
 	if err != nil {
 		log.Fatal("PICNOOK_MAX_MB 必须是整数")
@@ -107,6 +108,7 @@ func main() {
 	flag.StringVar(&cfg.configDir, "config-dir", envOr("PICNOOK_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 picnook-config（PICNOOK_CONFIG_DIR）")
 	flag.StringVar(&cfg.baseURL, "base", envOr("PICNOOK_BASE", ""), "图床网址，例如 https://img.example.com（PICNOOK_BASE）")
 	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（PICNOOK_MAX_MB）")
+	flag.StringVar(&imageCORS, "image-cors", envOr("PICNOOK_IMAGE_CORS", "on"), "图片响应是否带跨域头 on/off，反向代理已经加了时设为 off（PICNOOK_IMAGE_CORS）")
 	flag.StringVar(&extra, "extra-dirs", envOr("PICNOOK_EXTRA_DIRS", ""), "只读的旧图片目录，格式 前缀=目录，逗号分隔，例如 images=/data/images（PICNOOK_EXTRA_DIRS）")
 	flag.StringVar(&trusted, "trusted-proxies", envOr("PICNOOK_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（PICNOOK_TRUSTED_PROXIES）")
 	flag.Parse()
@@ -120,6 +122,14 @@ func main() {
 			log.Fatalf("可信代理地址段无效：%s", s)
 		}
 		cfg.trusted = append(cfg.trusted, n)
+	}
+
+	switch strings.ToLower(strings.TrimSpace(imageCORS)) {
+	case "on", "true", "1", "":
+		cfg.imageCORS = true
+	case "off", "false", "0":
+	default:
+		log.Fatalf("PICNOOK_IMAGE_CORS 只能是 on 或 off：%s", imageCORS)
 	}
 
 	for _, s := range strings.Split(extra, ",") {

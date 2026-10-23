@@ -302,6 +302,7 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 | `PICNOOK_TRASH` | `-trash` | 图片目录旁的 `i-trash` | 删除的图片移到这里 |
 | `PICNOOK_CONFIG_DIR` | `-config-dir` | 图片目录旁的 `picnook-config`，Docker 内为 `/data/config` | 后台设置、token、上传记录和水印字体 |
 | `PICNOOK_EXTRA_DIRS` | `-extra-dirs` | 空 | 只读的旧图片目录，格式 `前缀=目录`，逗号分隔，例如 `images=/data/images`。只输出图片，不能上传或删除 |
+| `PICNOOK_IMAGE_CORS` | `-image-cors` | `on` | 图片响应是否带 `Access-Control-Allow-Origin: *`。如果反向代理（例如 Nginx Proxy Manager 的自定义配置）已经加了这个头，设为 `off`，否则会出现两个值，浏览器会判定跨域失败 |
 | `PICNOOK_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
 | `PICNOOK_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
 | `PICNOOK_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |

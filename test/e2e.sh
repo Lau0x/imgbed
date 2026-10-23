@@ -33,6 +33,7 @@ check "旧图片 Content-Type" "$(curl -sI $B/i/2024/05/03/old123.jpg | grep -i 
 check "旧缩略图 /i/cache/" "$(code $B/i/cache/2024_05_03_old123.png)" 200
 check "hide_path 链接 /2024/05/03/old123.jpg" "$(code $B/2024/05/03/old123.jpg)" 200
 check "thumb.php 跳转到原图" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$B/app/thumb.php?img=/i/2024/05/03/old123.jpg")" "301 $B/i/2024/05/03/old123.jpg"
+check "图片带一个跨域头" "$(curl -sI -H 'Origin: https://example.org' $B/i/2024/05/03/old123.jpg | grep -ci '^access-control-allow-origin: \*')" 1
 check "Range 请求" "$(code -H 'Range: bytes=0-9' $B/i/2024/05/03/old123.jpg)" 206
 check "旧目录 /images/ 的图片" "$(code $B/images/2021/04/06/legacy.th.jpg)" 200
 check "旧目录里的 .php 不输出" "$(code $B/images/2021/04/06/evil.php)" 404

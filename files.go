@@ -83,7 +83,9 @@ func (a *app) serveImage(w http.ResponseWriter, r *http.Request, root, rel strin
 	h := w.Header()
 	h.Set("Content-Type", ctype)
 	h.Set("Cache-Control", "public, max-age=2592000")
-	h.Set("Access-Control-Allow-Origin", "*")
+	if a.cfg.imageCORS {
+		h.Set("Access-Control-Allow-Origin", "*")
+	}
 	h.Del("X-Frame-Options")
 	if ctype == "image/svg+xml" {
 		h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
