@@ -23,6 +23,7 @@ import (
 )
 
 var templateFuncs = template.FuncMap{
+	"version": func() string { return version },
 	"date": func(ts int64) string {
 		if ts == 0 {
 			return ""

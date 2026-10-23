@@ -26,6 +26,9 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
+// version 在编译时通过 -ldflags "-X main.version=v0.9.1" 写入
+var version = "dev"
+
 type config struct {
 	listen    string
 	imagesDir string // 对应网址中的 /i/
@@ -288,7 +291,7 @@ func main() {
 		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
-	log.Printf("picpier 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
+	log.Printf("picpier %s 监听 %s，图片目录 %s，配置目录 %s", version, cfg.listen, cfg.imagesDir, cfg.configDir)
 	for _, e := range cfg.extraDirs {
 		log.Printf("旧图片目录（只读）：/%s/ -> %s", e.prefix, e.dir)
 	}

@@ -69,6 +69,10 @@ code{background:var(--paper-2);border:1px solid var(--line);padding:1px 6px;bord
 .pref svg{width:17px;height:17px;display:none}
 .pref[data-mode=auto] .i-auto,.pref[data-mode=light] .i-light,.pref[data-mode=dark] .i-dark{display:block}
 .prefs-float{position:fixed;top:14px;right:16px;z-index:20;background:color-mix(in srgb,var(--card) 80%,transparent);border:1px solid var(--line);border-radius:999px;padding:3px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.credit{text-align:center;color:var(--muted);font-size:12px;padding:0 16px 28px;margin-top:-40px}
+.credit a{color:inherit;text-decoration:none}
+.credit a:hover{color:var(--accent)}
+.credit.fixed{position:fixed;left:0;right:0;bottom:0;margin:0;padding-bottom:16px}
 .nav a.on,.nav a.on:hover{background:var(--accent);color:var(--on-accent);box-shadow:0 4px 12px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
 .nav form{margin:0}
 .nav .sep{width:1px;height:22px;background:var(--line);margin:0 6px}
@@ -159,6 +163,8 @@ input[type=number]{width:110px}
 {{end}}
 
 {{define "brandmark"}}<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28V14a10 10 0 0 1 20 0v14z" fill="var(--accent)"/><path d="M10 24l4.5-6 3.5 4 2-2.5 3 4.5z" fill="var(--card)"/><circle cx="19.5" cy="13.5" r="2" fill="var(--card)"/></svg>{{end}}
+
+{{define "credit"}}<footer class="credit {{.}}"><a href="https://github.com/Lau0x/picpier" target="_blank" rel="noopener">PicPier {{version}} · GitHub</a></footer>{{end}}
 
 {{define "prefs"}}<div class="prefs">
   <button type="button" class="pref" data-theme-btn data-mode="auto" title="{{t "主题：跟随系统"}}" aria-label="{{t "主题：跟随系统"}}"><svg class="i-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor"/></svg><svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg><svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></button>

@@ -27,6 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      # 正式版本显示标签名，main 分支的构建显示 edge-提交号
+      - run: echo "VERSION=$([ "$GITHUB_REF_TYPE" = tag ] && echo "$GITHUB_REF_NAME" || echo "edge-${GITHUB_SHA::7}")" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -52,6 +54,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: VERSION=${{ env.VERSION }}
 
   release:
     needs: test
@@ -66,7 +69,7 @@ jobs:
           go-version: "1.26"
       - run: |
           for arch in amd64 arm64; do
-            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -tags nodynamic -trimpath -ldflags="-s -w" -o dist/picpier-linux-$arch .
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -tags nodynamic -trimpath -ldflags="-s -w -X main.version=$GITHUB_REF_NAME" -o dist/picpier-linux-$arch .
           done
           (cd dist && sha256sum picpier-linux-* > SHA256SUMS)
       - run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes

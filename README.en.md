@@ -504,7 +504,7 @@ With `latest`, run this in the directory with `docker-compose.yml`:
 docker compose pull && docker compose up -d
 ```
 
-Images, settings and tokens live in mounted directories and survive upgrades. If a new version misbehaves, change `latest` to the previous version number and run the command again. See [Releases](https://github.com/Lau0x/picpier/releases) for what changed in each version.
+The running version is shown at the bottom of admin pages and in the first line of the startup log. Images, settings and tokens live in mounted directories and survive upgrades. If a new version misbehaves, change `latest` to the previous version number and run the command again. See [Releases](https://github.com/Lau0x/picpier/releases) for what changed in each version.
 
 When running directly (systemd), download the new binary from Releases, replace `/usr/local/bin/picpier`, and run `sudo systemctl restart picpier`.
 

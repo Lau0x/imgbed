@@ -1,13 +1,14 @@
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
 COPY templates ./templates
 COPY fonts ./fonts
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags nodynamic -trimpath -ldflags="-s -w" -o /out/picpier . \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags nodynamic -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /out/picpier . \
     && mkdir -p /out/data/i /out/data/i-trash /out/data/config
 
 FROM gcr.io/distroless/static-debian12:nonroot

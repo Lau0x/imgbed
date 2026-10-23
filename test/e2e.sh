@@ -243,6 +243,12 @@ check "页面带主题切换按钮" "$(curl -s -b $J3 $B/ | grep -c '<button[^>]
 check "登录页也有主题和语言切换" "$(curl -s $B/login | grep -c '<button[^>]*data-lang-btn')" 1
 check "深色样式可以手动开启" "$(curl -s $B/login | grep -c ':root\[data-theme=dark\]')" 1
 
+echo "== 项目链接 =="
+check "后台页脚有项目链接和版本号" "$(curl -s -b $J3 $B/admin | grep -c 'github.com/Lau0x/picpier".*PicPier dev')" 1
+check "登录页有项目链接" "$(curl -s $B/login | grep -c 'class="credit fixed"')" 1
+check "删除确认页不显示项目链接" "$(curl -s "$(api $W/fixtures/a.png $TOKEN | field del)" | grep -c 'class="credit')" 0
+check "启动日志带版本号" "$(grep -c 'picpier dev 监听' $W/server.log)" 2
+
 echo "== 健康检查 =="
 check "healthcheck 子命令" "$(PICPIER_LISTEN=127.0.0.1:$PORT "$W/picpier" healthcheck; echo $?)" 0
 

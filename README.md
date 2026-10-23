@@ -504,7 +504,7 @@ Docker 镜像有三种标签：
 docker compose pull && docker compose up -d
 ```
 
-图片、设置和 token 都在挂载的目录里，升级不会丢。新版本有问题时，把 `latest` 改成之前的版本号再执行一次就能回退。每个版本的改动见 [Releases](https://github.com/Lau0x/picpier/releases)。
+当前运行的版本号显示在后台页面底部，也会打印在启动日志的第一行。图片、设置和 token 都在挂载的目录里，升级不会丢。新版本有问题时，把 `latest` 改成之前的版本号再执行一次就能回退。每个版本的改动见 [Releases](https://github.com/Lau0x/picpier/releases)。
 
 直接运行（systemd）的话，从 Releases 下载新的程序文件替换 `/usr/local/bin/picpier`，再执行 `sudo systemctl restart picpier`。
 
