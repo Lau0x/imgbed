@@ -81,7 +81,8 @@ DEL=$(echo "$R" | field del)
 AURL=$(echo "$R" | field url)
 check "删除链接 GET 只显示确认页" "$(code "$DEL")" 200
 check "GET 之后图片还在" "$(code "$AURL")" 200
-check "篡改签名" "$(code "${DEL%?}0")" 403
+BAD=${DEL%?}0; [ "$BAD" = "$DEL" ] && BAD=${DEL%?}1
+check "篡改签名" "$(code "$BAD")" 403
 F=$(echo "$DEL" | sed -E 's/.*[?&]f=([^&]*).*/\1/')
 S=$(echo "$DEL" | sed -E 's/.*[?&]s=([^&]*).*/\1/')
 curl -s -o /dev/null -H "$O" -d "f=$F&s=$S" $B/del
