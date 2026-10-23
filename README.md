@@ -239,6 +239,29 @@ location ^~ /i/ {
 
 程序同样只输出图片扩展名的文件，不执行任何脚本。开启后响应会带 `Vary: Referer`；如果前面还有 CDN，需要确认 CDN 按 Referer 区分缓存，或者在 CDN 上配置防盗链。
 
+### 跨域头只能有一个
+
+PicNook 默认会给图片加 `Access-Control-Allow-Origin: *`，方便公众号排版工具、在线编辑器等网页用脚本读取图片。
+
+如果反向代理也加了这个头，响应里就会出现两个值。浏览器会判定跨域失败，这类工具会提示"图床缺少跨域头"之类的错误，但在网页里直接显示图片不受影响，所以很容易被忽略。常见情况是在 Nginx Proxy Manager 的 Custom Nginx Configuration（或 Nginx 的站点配置）里写了：
+
+```nginx
+add_header Access-Control-Allow-Origin "*" always;
+```
+
+两边只保留一个即可，二选一：
+
+- **保留反向代理的**：在 `.env` 里设置 `PICNOOK_IMAGE_CORS=off`，然后 `docker compose up -d`。适合代理里还配了 `Cross-Origin-Resource-Policy` 等其他头、想统一在代理里管理的情况。
+- **保留 PicNook 的**：删掉反向代理里的这一行，`PICNOOK_IMAGE_CORS` 保持默认的 `on`。
+
+检查方法：下面这条命令应该只输出一行；输出两行说明重复了，一行都没有说明两边都关掉了。
+
+```bash
+curl -sI -H 'Origin: https://example.com' https://img.example.com/i/<任意一张图> | grep -i access-control-allow-origin
+```
+
+上传接口 `/api/index.php` 的跨域头始终由 PicNook 处理，不受这个开关影响。如果反向代理也给 API 加了跨域头，同样会出现重复，需要在代理里把 `/api/` 排除掉。
+
 ## 后台设置
 
 登录后点右上角「设置」，修改后立即生效，保存在配置目录的 `settings.json` 里。
