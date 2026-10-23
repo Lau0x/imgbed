@@ -172,6 +172,34 @@ func (a *app) recentDays(limit int) []string {
 	return days
 }
 
+// monthGroup 把日期列表按月分组，供管理页侧栏折叠显示
+type monthGroup struct {
+	Key   string // 2026/10
+	Label string // 2026 年 10 月
+	Days  []dayLink
+}
+
+type dayLink struct {
+	Value string // 2026/10/23
+	Label string // 23 日
+}
+
+func dayGroups(days []string) []monthGroup {
+	var out []monthGroup
+	for _, d := range days {
+		if len(d) != 10 {
+			continue
+		}
+		key := d[:7]
+		if len(out) == 0 || out[len(out)-1].Key != key {
+			out = append(out, monthGroup{Key: key, Label: d[:4] + " 年 " + d[5:7] + " 月"})
+		}
+		g := &out[len(out)-1]
+		g.Days = append(g.Days, dayLink{Value: d, Label: d[8:] + " 日"})
+	}
+	return out
+}
+
 type imageItem struct {
 	Rel  string
 	URL  string
@@ -235,7 +263,7 @@ func (a *app) handleAdmin(w http.ResponseWriter, r *http.Request) {
 		images = a.listDay(day)
 	}
 	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
-		"Days": days, "Day": day, "Images": images, "Msg": r.URL.Query().Get("msg"),
+		"Groups": dayGroups(days), "Day": day, "Images": images, "Msg": r.URL.Query().Get("msg"),
 	})
 }
 

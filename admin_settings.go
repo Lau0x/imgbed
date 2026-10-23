@@ -30,6 +30,26 @@ var templateFuncs = template.FuncMap{
 		}
 		return time.Unix(ts, 0).Format("2006-01-02 15:04")
 	},
+	"day": func(ts int64) string {
+		if ts == 0 {
+			return ""
+		}
+		return time.Unix(ts, 0).Format("2006-01-02")
+	},
+	// dayLabel 把 2026/10/23 显示成 2026 年 10 月 23 日
+	"dayLabel": func(d string) string {
+		if len(d) != 10 {
+			return d
+		}
+		return d[:4] + " 年 " + strings.TrimPrefix(d[5:7], "0") + " 月 " + strings.TrimPrefix(d[8:], "0") + " 日"
+	},
+	// mask 只显示 token 的首尾几位，完整值通过复制按钮获取
+	"mask": func(s string) string {
+		if len(s) <= 12 {
+			return s
+		}
+		return s[:6] + "••••••" + s[len(s)-4:]
+	},
 }
 
 var waterPositions = []struct {
@@ -357,7 +377,7 @@ func (a *app) handleTokenFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].mod.After(items[j].mod) })
 	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
-		"Days":   a.recentDays(180),
+		"Groups": dayGroups(a.recentDays(180)),
 		"Day":    "",
 		"Title":  fmt.Sprintf("Token #%d 上传的图片", tok.ID),
 		"Extra":  template.HTML(`<a href="/admin/settings#tokens">返回 Token 管理</a>`),

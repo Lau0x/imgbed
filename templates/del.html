@@ -1,18 +1,32 @@
 {{template "head" "删除图片"}}
-<main style="max-width:420px;margin-top:12vh">
-  <div class="card">
-    {{if .Msg}}
-      <p style="margin:0">{{.Msg}}</p>
-    {{else}}
-      <h3 style="margin:0 0 12px">确定删除这张图片？</h3>
-      <img src="{{.URL}}" alt="" style="max-width:100%;max-height:240px;border-radius:6px">
-      <p class="muted" style="word-break:break-all">{{.URL}}</p>
-      <form method="post" action="/del">
-        <input type="hidden" name="f" value="{{.F}}">
-        <input type="hidden" name="s" value="{{.S}}">
-        <button class="danger" type="submit">确认删除</button>
-      </form>
-    {{end}}
+<style>
+.del{min-height:100vh;display:grid;place-items:center;padding:24px}
+.del .card{width:100%;max-width:460px}
+.del h1{font-size:24px;margin-bottom:6px}
+.del .pic{margin:16px 0;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--line);background:var(--paper-2) repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
+.del .pic img{display:block;max-width:100%;max-height:280px;margin:0 auto}
+.del .url{font:12.5px/1.5 var(--mono);color:var(--muted);word-break:break-all;margin-bottom:18px}
+.del .brand{justify-content:center;margin:0 0 18px}
+</style>
+<main class="del">
+  <div class="rise" style="width:100%;max-width:460px">
+    <div class="brand">{{template "brandmark"}}<span>Pic<em>Nook</em></span></div>
+    <div class="card">
+      {{if .Msg}}
+        <h1>{{.Msg}}</h1>
+        <p class="muted">可以关闭这个页面了。</p>
+      {{else}}
+        <h1>删除这张图片？</h1>
+        <p class="muted">删除后，所有贴出去的链接都会失效。</p>
+        <div class="pic"><img src="{{.URL}}" alt=""></div>
+        <div class="url">{{.URL}}</div>
+        <form method="post" action="/del">
+          <input type="hidden" name="f" value="{{.F}}">
+          <input type="hidden" name="s" value="{{.S}}">
+          <button class="btn btn-danger" type="submit" style="width:100%;padding:11px">确认删除</button>
+        </form>
+      {{end}}
+    </div>
   </div>
 </main>
 {{template "foot"}}

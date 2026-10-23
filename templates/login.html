@@ -1,11 +1,29 @@
 {{template "head" "登录"}}
-<main style="max-width:360px;margin-top:12vh">
-  <form class="card" method="post" action="/login">
-    <h2 style="margin:0 0 16px">登录 PicNook</h2>
-    {{with .Error}}<p class="err">{{.}}</p>{{end}}
-    <input type="hidden" name="next" value="{{.Next}}">
-    <input type="password" name="password" placeholder="管理密码" autocomplete="current-password" autofocus required>
-    <button class="primary" type="submit" style="width:100%;margin-top:14px;padding:8px">登录</button>
-  </form>
+<style>
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{width:100%;max-width:380px;position:relative}
+.login-arch{width:76px;height:92px;margin:0 auto 22px;border-radius:38px 38px 6px 6px;background:var(--accent);position:relative;box-shadow:var(--shadow-lg);overflow:hidden}
+.login-arch::before{content:"";position:absolute;left:14px;right:14px;bottom:16px;height:30px;background:var(--card);clip-path:polygon(0 100%,32% 30%,55% 70%,70% 45%,100% 100%)}
+.login-arch::after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--card);top:30px;right:20px}
+.login h1{text-align:center;font-size:30px;margin-bottom:6px}
+.login h1 em{font-style:italic;color:var(--accent)}
+.login .tag{text-align:center;color:var(--muted);font-size:14px;margin:0 0 26px}
+.login form{display:grid;gap:14px}
+.login .btn{width:100%;padding:12px}
+.login .err{background:var(--danger-soft);padding:9px 12px;border-radius:var(--radius-sm);font-size:14px;margin:0}
+.login-foot{text-align:center;margin-top:22px;font-size:12px;color:var(--muted)}
+</style>
+<main class="login">
+  <div class="login-card rise">
+    <div class="login-arch" aria-hidden="true"></div>
+    <h1>登录 Pic<em>Nook</em></h1>
+    <p class="tag">放图片的小角落</p>
+    <form class="card" method="post" action="/login">
+      {{with .Error}}<p class="err">{{.}}</p>{{end}}
+      <input type="hidden" name="next" value="{{.Next}}">
+      <input type="password" name="password" placeholder="管理密码" autocomplete="current-password" autofocus required>
+      <button class="btn btn-primary" type="submit">登录</button>
+    </form>
+  </div>
 </main>
 {{template "foot"}}

@@ -1,58 +1,162 @@
-{{template "head" "管理"}}
+{{template "head" "图片"}}
 {{template "nav"}}
 <style>
-.layout{display:grid;grid-template-columns:150px 1fr;gap:20px}
-.days{max-height:75vh;overflow:auto;font-size:14px}
-.days a{display:block;padding:3px 8px;border-radius:4px;color:var(--text)}
-.days a.on{background:var(--accent);color:#fff}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.tile img{display:block;width:100%;height:150px;object-fit:cover;background:var(--bg)}
-.tile .meta{padding:8px 10px;font-size:12px}
-.tile .name{word-break:break-all;color:var(--text)}
-.tile .ops{display:flex;gap:6px;margin-top:6px}
-.tile .ops button{font-size:12px;padding:2px 8px}
-.tile form{margin:0}
-@media (max-width:640px){.layout{grid-template-columns:1fr}.days{max-height:none;display:flex;flex-wrap:wrap;gap:4px}}
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;align-items:start}
+.layout>*{min-width:0}
+.days{position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;padding:14px 10px;scrollbar-width:thin}
+.days h4{font:600 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 8px 12px}
+.days details{margin-bottom:2px}
+.days summary{list-style:none;cursor:pointer;padding:7px 8px;border-radius:8px;font:600 14px/1.2 var(--serif);display:flex;justify-content:space-between;align-items:center}
+.days summary::-webkit-details-marker{display:none}
+.days summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;margin-right:4px}
+.days details[open] summary::after{transform:rotate(45deg)}
+.days summary:hover{background:var(--paper-2)}
+.days .list{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 4px 10px}
+.days .list a{text-align:center;padding:6px 0;border-radius:7px;font:500 13px/1 var(--sans);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.days .list a:hover{background:var(--paper-2);color:var(--ink)}
+.days .list a.on{background:var(--accent);color:var(--on-accent)}
+.days .none{color:var(--muted);font-size:13px;padding:0 8px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;animation:rise .4s cubic-bezier(.2,.7,.3,1) both}
+.tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.shot{position:relative;aspect-ratio:4/3;background:var(--paper-2) repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/16px 16px}
+.shot button.view{all:unset;display:block;width:100%;height:100%;cursor:zoom-in}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+.acts{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:6px;opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s}
+.tile:hover .acts,.tile:focus-within .acts{opacity:1;transform:none}
+.acts .btn{background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.acts form{margin:0 0 0 auto}
+.info{padding:10px 12px 12px}
+.info .name{font:500 13px/1.4 var(--mono);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info .sub{color:var(--muted);font-size:12px;margin-top:3px;font-variant-numeric:tabular-nums}
+.blank{text-align:center;padding:70px 20px;color:var(--muted);border:1px dashed var(--line-2);border-radius:var(--radius)}
+.blank h3{color:var(--ink);font-size:20px;margin-bottom:6px}
+
+dialog.lb{border:0;padding:0;background:transparent;max-width:min(1100px,94vw);width:100%;color:var(--ink)}
+dialog.lb::backdrop{background:rgba(18,14,10,.72);backdrop-filter:blur(4px)}
+.lb-in{background:var(--card);border-radius:calc(var(--radius) + 2px);overflow:hidden;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 300px}
+.lb-img{background:#0f0d0a repeating-conic-gradient(#1b1813 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:320px;max-height:82vh}
+.lb-img img{max-width:100%;max-height:82vh;display:block}
+.lb-side{padding:22px;display:flex;flex-direction:column;gap:14px}
+.lb-side .lb-name{font:600 15px/1.4 var(--mono);word-break:break-all}
+.lb-side .sub{color:var(--muted);font-size:13px}
+.lb-side .row{display:flex;gap:8px;flex-wrap:wrap}
+.lb-close{margin-left:auto}
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr}
+  .days{position:static;max-height:none}
+  .days .list{grid-template-columns:repeat(7,1fr)}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .acts{opacity:1;transform:none;left:8px;right:8px;bottom:8px;gap:4px}
+  .acts .btn{padding:5px 9px;font-size:12px}
+  .acts a.btn{display:none}
+  .lb-in{grid-template-columns:1fr}
+}
 </style>
-<main>
-  {{with .Msg}}<div class="msg">{{.}}</div>{{end}}
+<main class="wrap">
+  {{with .Msg}}<div class="notice rise">{{.}}</div>{{end}}
   <div class="layout">
-    <nav class="days card" style="padding:10px">
-      {{range .Days}}<a href="/admin?d={{.}}"{{if eq . $.Day}} class="on"{{end}}>{{.}}</a>{{else}}<span class="muted">还没有图片</span>{{end}}
-    </nav>
+    <aside class="days card rise rise-1">
+      <h4>按日期</h4>
+      {{range .Groups}}
+      <details data-key="{{.Key}}">
+        <summary>{{.Label}}</summary>
+        <div class="list">{{range .Days}}<a href="/admin?d={{.Value}}"{{if eq .Value $.Day}} class="on"{{end}}>{{.Label}}</a>{{end}}</div>
+      </details>
+      {{else}}<p class="none">还没有图片</p>{{end}}
+    </aside>
     <section>
-      <h3 style="margin:0 0 14px">{{if .Title}}{{.Title}}{{else}}{{.Day}}{{end}} <span class="muted">共 {{len .Images}} 张</span></h3>
-      {{with .Extra}}<div style="margin:-6px 0 14px">{{.}}</div>{{end}}
+      <div class="page-head rise rise-2">
+        <div>
+          <span class="eyebrow">Library</span>
+          <h1>{{if .Title}}{{.Title}}{{else if .Day}}{{dayLabel .Day}}{{else}}图片{{end}}</h1>
+          <div class="sub">共 {{len .Images}} 张{{if .Images}}，悬停图片可复制或删除，点击查看大图{{end}}</div>
+        </div>
+        {{with .Extra}}<div>{{.}}</div>{{end}}
+      </div>
+      {{if .Images}}
       <div class="grid">
-        {{range .Images}}
-        <div class="tile">
-          <a href="{{.URL}}" target="_blank" rel="noopener"><img src="{{.URL}}" alt="" loading="lazy"></a>
-          <div class="meta">
-            <div class="name">{{.Name}}</div>
-            <div class="muted">{{.Time}} · {{.Size}}</div>
-            <div class="ops">
-              <button type="button" data-url="{{.URL}}" class="copy">复制链接</button>
-              <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效。')">
+        {{range $i, $img := .Images}}
+        <article class="tile" style="animation-delay:{{if lt $i 24}}{{$i}}0ms{{else}}0ms{{end}}">
+          <div class="shot">
+            <button type="button" class="view" data-url="{{.URL}}" data-file="{{.Name}}" data-rel="{{.Rel}}" data-meta="{{.Time}} · {{.Size}}" aria-label="查看大图"><img src="{{.URL}}" alt="" loading="lazy"></button>
+            <div class="acts">
+              <button type="button" class="btn btn-sm" data-copy="{{.URL}}" data-copy-msg="已复制链接">复制链接</button>
+              <a class="btn btn-sm" href="{{.URL}}" target="_blank" rel="noopener">打开</a>
+              <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')">
                 <input type="hidden" name="f" value="{{.Rel}}">
-                <button class="danger" type="submit">删除</button>
+                <button class="btn btn-sm btn-danger" type="submit">删除</button>
               </form>
             </div>
           </div>
-        </div>
+          <div class="info">
+            <div class="name">{{.Name}}</div>
+            <div class="sub">{{.Time}} · {{.Size}}</div>
+          </div>
+        </article>
         {{end}}
       </div>
+      {{else}}
+      <div class="blank rise rise-3">
+        <h3>这里还空着</h3>
+        <p>{{if .Day}}这一天没有图片。{{end}}去 <a href="/">上传页</a> 传几张吧。</p>
+      </div>
+      {{end}}
     </section>
   </div>
 </main>
+
+<dialog class="lb" id="lb">
+  <div class="lb-in">
+    <div class="lb-img"><img id="lb-img" alt=""></div>
+    <div class="lb-side">
+      <div class="row"><button type="button" class="btn btn-sm btn-ghost lb-close" id="lb-close">关闭 <kbd>Esc</kbd></button></div>
+      <div class="lb-name" id="lb-name"></div>
+      <div class="sub" id="lb-meta"></div>
+      <input type="text" class="input-mono" id="lb-url" readonly>
+      <div class="row">
+        <button type="button" class="btn btn-primary btn-sm" id="lb-copy">复制链接</button>
+        <button type="button" class="btn btn-sm" id="lb-md">复制 Markdown</button>
+        <a class="btn btn-sm" id="lb-open" target="_blank" rel="noopener">打开原图</a>
+      </div>
+      <form method="post" action="/admin/delete" id="lb-del" style="margin-top:auto">
+        <input type="hidden" name="f" id="lb-f">
+        <button type="submit" class="btn btn-sm btn-danger">删除这张图片</button>
+      </form>
+    </div>
+  </div>
+</dialog>
 <script>
-document.querySelectorAll('button.copy').forEach(function (b) {
-  b.addEventListener('click', function () {
-    navigator.clipboard.writeText(b.dataset.url).then(function () {
-      b.textContent = '已复制';
-      setTimeout(function () { b.textContent = '复制链接'; }, 1200);
+(function () {
+  var cur = document.querySelector('.days a.on');
+  var open = cur ? cur.closest('details') : document.querySelector('.days details');
+  if (open) open.open = true;
+  if (cur) cur.scrollIntoView({ block: 'nearest' });
+
+  var lb = document.getElementById('lb');
+  if (!lb.showModal) return;
+  var $ = function (id) { return document.getElementById(id); };
+  document.querySelectorAll('.shot .view').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var url = b.dataset.url;
+      $('lb-img').src = url;
+      $('lb-name').textContent = b.dataset.file;
+      $('lb-meta').textContent = b.dataset.meta;
+      $('lb-url').value = url;
+      $('lb-open').href = url;
+      $('lb-f').value = b.dataset.rel;
+      lb.showModal();
     });
   });
-});
+  $('lb-close').addEventListener('click', function () { lb.close(); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) lb.close(); });
+  $('lb-copy').addEventListener('click', function () { copyText($('lb-url').value, '已复制链接'); });
+  $('lb-md').addEventListener('click', function () { copyText('![](' + $('lb-url').value + ')', '已复制 Markdown'); });
+  $('lb-url').addEventListener('focus', function () { this.select(); });
+  $('lb-del').addEventListener('submit', function (e) {
+    if (!confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')) e.preventDefault();
+  });
+})();
 </script>
 {{template "foot"}}
