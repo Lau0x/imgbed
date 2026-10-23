@@ -130,4 +130,8 @@ func main() {
 	write(filepath.Join(dir, "site/i/2024/05/03/old123.jpg"), encJPEG(small, 90))
 	write(filepath.Join(dir, "site/i/cache/2024_05_03_old123.png"), encPNG(small))
 	write(filepath.Join(dir, "site/i/2024/05/03/shell.php"), []byte("<?php eval($_POST[x]);"))
+
+	// EasyImage 早期版本的 /images/ 目录
+	write(filepath.Join(dir, "site/images/2021/04/06/legacy.th.jpg"), encJPEG(small, 90))
+	write(filepath.Join(dir, "site/images/2021/04/06/evil.php"), []byte("<?php phpinfo();"))
 }

@@ -117,6 +117,12 @@ curl -fsSL https://raw.githubusercontent.com/Lau0x/picnook/main/.env.example -o 
 
 `config` 目录保存后台设置、token 和上传记录，一定要挂载出来，否则重建容器后会丢失。
 
+站点根目录下如果还有 `images` 目录（EasyImage 早期版本用的，链接形如 `/images/2021/...`），再加一行只读挂载，并在 `.env` 里加上 `PICNOOK_EXTRA_DIRS=images=/data/images`，这些旧链接也能继续打开：
+
+```yaml
+      - <站点根目录>/images:/data/images:ro
+```
+
 编辑 `.env`：`PICNOOK_BASE` 填原来的图床网址（比如 `https://img.example.com`），`PICNOOK_UID` / `PICNOOK_GID` 填第 4 步看到的数字，再填好密码和密钥。`PICNOOK_TOKENS` 可以留空。然后：
 
 ```bash
@@ -182,6 +188,7 @@ curl -s -F image=@test.png -F token=<你的token> https://img.example.com/api/in
 | --- | --- |
 | `/i/...` 图片链接 | 不变 |
 | 开启"隐藏 /i/ 路径"后的 `/年/月/日/文件名` 链接 | 不变 |
+| 早期版本的 `/images/...` 链接 | 不变，需要设置 `PICNOOK_EXTRA_DIRS` |
 | `thumb.php?img=...` 缩略图链接 | 跳转到原图 |
 | `/api/index.php` 上传 | 不变，返回格式一致 |
 | 原来的删除链接 `del.php?hash=...` | **失效**，新上传的图片会返回新的删除链接 |
@@ -294,6 +301,7 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 | `PICNOOK_IMAGES` | `-images` | Docker 内为 `/data/i` | 图片目录，对应网址里的 `/i/` |
 | `PICNOOK_TRASH` | `-trash` | 图片目录旁的 `i-trash` | 删除的图片移到这里 |
 | `PICNOOK_CONFIG_DIR` | `-config-dir` | 图片目录旁的 `picnook-config`，Docker 内为 `/data/config` | 后台设置、token、上传记录和水印字体 |
+| `PICNOOK_EXTRA_DIRS` | `-extra-dirs` | 空 | 只读的旧图片目录，格式 `前缀=目录`，逗号分隔，例如 `images=/data/images`。只输出图片，不能上传或删除 |
 | `PICNOOK_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
 | `PICNOOK_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
 | `PICNOOK_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |

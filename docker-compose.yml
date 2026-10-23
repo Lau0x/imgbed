@@ -16,3 +16,5 @@ services:
       # - /原站点根目录/i:/data/i
       # - ./i-trash:/data/i-trash
       # - ./config:/data/config
+      # 原站点还有早期版本的 images 目录时，再加下面这行，并在 .env 里设置 PICNOOK_EXTRA_DIRS=images=/data/images
+      # - /原站点根目录/images:/data/images:ro

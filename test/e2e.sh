@@ -15,7 +15,7 @@ FAILS=0
 "$W/fixtool" "$W" || exit 1
 
 PICNOOK_PASSWORD=testpass123 PICNOOK_SECRET=0123456789abcdef0123456789abcdef PICNOOK_TOKENS=$TOKEN \
-PICNOOK_LISTEN=127.0.0.1:$PORT PICNOOK_IMAGES="$W/site/i" PICNOOK_BASE="$B" \
+PICNOOK_LISTEN=127.0.0.1:$PORT PICNOOK_IMAGES="$W/site/i" PICNOOK_BASE="$B" PICNOOK_EXTRA_DIRS="images=$W/site/images" \
   "$W/picnook" > "$W/server.log" 2>&1 &
 PID=$!
 trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null; rm -rf "$W"' EXIT
@@ -34,6 +34,10 @@ check "旧缩略图 /i/cache/" "$(code $B/i/cache/2024_05_03_old123.png)" 200
 check "hide_path 链接 /2024/05/03/old123.jpg" "$(code $B/2024/05/03/old123.jpg)" 200
 check "thumb.php 跳转到原图" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$B/app/thumb.php?img=/i/2024/05/03/old123.jpg")" "301 $B/i/2024/05/03/old123.jpg"
 check "Range 请求" "$(code -H 'Range: bytes=0-9' $B/i/2024/05/03/old123.jpg)" 206
+check "旧目录 /images/ 的图片" "$(code $B/images/2021/04/06/legacy.th.jpg)" 200
+check "旧目录里的 .php 不输出" "$(code $B/images/2021/04/06/evil.php)" 404
+check "旧目录编码穿越" "$(code -L --path-as-is "$B/images/2021/..%2f..%2f..%2fi/2024/05/03/shell.php")" 404
+check "旧目录不列出" "$(code $B/images/2021/04/06/)" 404
 
 echo "== 安全 =="
 check "残留 shell.php 不输出" "$(code $B/i/2024/05/03/shell.php)" 404

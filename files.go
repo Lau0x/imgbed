@@ -50,8 +50,8 @@ func imageType(name string) string {
 	return contentTypes[strings.ToLower(path.Ext(name))]
 }
 
-// serveImage 是兜底的图片输出；正式部署时 /i/ 由 OpenResty 直接返回静态文件，不经过这里
-func (a *app) serveImage(w http.ResponseWriter, r *http.Request, rel string) {
+// serveImage 输出 root 目录下的图片；按推荐配置部署时 /i/ 由 Nginx 直接返回静态文件，不经过这里
+func (a *app) serveImage(w http.ResponseWriter, r *http.Request, root, rel string) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -69,7 +69,7 @@ func (a *app) serveImage(w http.ResponseWriter, r *http.Request, rel string) {
 			return
 		}
 	}
-	f, err := os.Open(filepath.Join(a.cfg.imagesDir, filepath.FromSlash(rel)))
+	f, err := os.Open(filepath.Join(root, filepath.FromSlash(rel)))
 	if err != nil {
 		http.NotFound(w, r)
 		return

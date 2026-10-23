@@ -29,12 +29,27 @@ type config struct {
 	imagesDir string // 对应网址中的 /i/
 	trashDir  string
 	configDir string // settings.json、上传日志和水印字体放在这里
+	extraDirs []extraDir
 	baseURL   string
 	password  string
 	secret    []byte
 	tokens    []string
 	trusted   []*net.IPNet // 只信任这些地址发来的 X-Real-IP
 }
+
+// extraDir 是只读的旧图片目录，例如 EasyImage 早期版本用的 /images/
+type extraDir struct {
+	prefix string
+	dir    string
+}
+
+// 这些网址前缀被程序自己占用，不能用作旧图片目录
+var reservedPrefixes = map[string]bool{
+	"i": true, "admin": true, "api": true, "app": true, "application": true, "login": true,
+	"logout": true, "upload": true, "del": true, "healthz": true,
+}
+
+var extraPrefixRe = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 type app struct {
 	cfg     config
@@ -81,7 +96,7 @@ func main() {
 	}
 	var cfg config
 	var maxMB int64
-	var trusted string
+	var trusted, extra string
 	defaultMB, err := strconv.ParseInt(envOr("PICNOOK_MAX_MB", "10"), 10, 64)
 	if err != nil {
 		log.Fatal("PICNOOK_MAX_MB 必须是整数")
@@ -92,6 +107,7 @@ func main() {
 	flag.StringVar(&cfg.configDir, "config-dir", envOr("PICNOOK_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 picnook-config（PICNOOK_CONFIG_DIR）")
 	flag.StringVar(&cfg.baseURL, "base", envOr("PICNOOK_BASE", ""), "图床网址，例如 https://img.example.com（PICNOOK_BASE）")
 	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（PICNOOK_MAX_MB）")
+	flag.StringVar(&extra, "extra-dirs", envOr("PICNOOK_EXTRA_DIRS", ""), "只读的旧图片目录，格式 前缀=目录，逗号分隔，例如 images=/data/images（PICNOOK_EXTRA_DIRS）")
 	flag.StringVar(&trusted, "trusted-proxies", envOr("PICNOOK_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（PICNOOK_TRUSTED_PROXIES）")
 	flag.Parse()
 
@@ -104,6 +120,25 @@ func main() {
 			log.Fatalf("可信代理地址段无效：%s", s)
 		}
 		cfg.trusted = append(cfg.trusted, n)
+	}
+
+	for _, s := range strings.Split(extra, ",") {
+		if s = strings.TrimSpace(s); s == "" {
+			continue
+		}
+		prefix, dir, ok := strings.Cut(s, "=")
+		prefix = strings.Trim(strings.TrimSpace(prefix), "/")
+		if !ok || !extraPrefixRe.MatchString(prefix) || reservedPrefixes[prefix] || strings.TrimSpace(dir) == "" {
+			log.Fatalf("旧图片目录配置无效：%s（格式 前缀=目录，前缀不能是 %s 等程序占用的名字）", s, "i、admin、api")
+		}
+		abs, err := filepath.Abs(strings.TrimSpace(dir))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if st, err := os.Stat(abs); err != nil || !st.IsDir() {
+			log.Fatalf("旧图片目录不存在：%s", abs)
+		}
+		cfg.extraDirs = append(cfg.extraDirs, extraDir{prefix: prefix, dir: abs})
 	}
 
 	cfg.password = os.Getenv("PICNOOK_PASSWORD")
@@ -183,6 +218,9 @@ func main() {
 		IdleTimeout:       2 * time.Minute,
 	}
 	log.Printf("picnook 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
+	for _, e := range cfg.extraDirs {
+		log.Printf("旧图片目录（只读）：/%s/ -> %s", e.prefix, e.dir)
+	}
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -197,14 +235,20 @@ func (a *app) routes() http.Handler {
 			return
 		}
 		if m := hiddenPathRe.FindStringSubmatch(r.URL.Path); m != nil {
-			a.serveImage(w, r, m[1])
+			a.serveImage(w, r, a.cfg.imagesDir, m[1])
 			return
 		}
 		http.NotFound(w, r)
 	})
 	mux.HandleFunc("/i/", func(w http.ResponseWriter, r *http.Request) {
-		a.serveImage(w, r, strings.TrimPrefix(r.URL.Path, "/i/"))
+		a.serveImage(w, r, a.cfg.imagesDir, strings.TrimPrefix(r.URL.Path, "/i/"))
 	})
+	for _, e := range a.cfg.extraDirs {
+		e := e
+		mux.HandleFunc("/"+e.prefix+"/", func(w http.ResponseWriter, r *http.Request) {
+			a.serveImage(w, r, e.dir, strings.TrimPrefix(r.URL.Path, "/"+e.prefix+"/"))
+		})
+	}
 	mux.HandleFunc("/login", a.handleLogin)
 	mux.HandleFunc("/logout", a.handleLogout)
 	mux.HandleFunc("/upload", a.handleUpload)
