@@ -50,7 +50,92 @@ docker compose ps        # STATUS 显示 healthy 就是正常
 
 ## 从 EasyImage 迁移
 
-整个迁移不复制、不改动任何图片文件。新程序直接读写原来的 `i` 目录，所以旧链接自然有效；中途出问题，换回原来的站点配置就能回滚。
+整个迁移不复制、不改动任何图片文件。新程序直接读写原来的 `i` 目录，所以旧链接自然有效；中途出问题，随时可以换回 EasyImage。
+
+EasyImage 常见两种部署方式，迁移方法不同：
+
+- **Docker 版**（`docker ps` 能看到 `ddsderek/easyimage` 之类的镜像）：看下面的 [Docker 版 EasyImage](#docker-版-easyimage)，最简单，反向代理一行都不用改。
+- **PHP 站点**（1Panel、宝塔等面板里建的 PHP 网站）：从 [1. 备份](#1-备份) 开始按步骤来。
+
+### Docker 版 EasyImage
+
+思路是把 PicNook 放进 EasyImage 原来的目录，直接使用原来的 `i` 目录，并接替原来的端口，所以 Nginx Proxy Manager 等反向代理不用改。下面以原目录 `/root/data/docker_data/img.example.com` 为例，里面有 `docker-compose.yml`、`config`、`i`，可能还有 `images`：
+
+```bash
+cd /root/data/docker_data/img.example.com
+
+# 1. 备份
+tar czf ~/easyimage-backup-$(date +%F).tgz .
+
+# 2. 检查有没有被植入后门：列出不是图片的文件（EasyImage 自己的缓存目录除外）。有输出先停下来排查
+find i images -type f ! -path 'i/cache/*' ! -path 'i/thumbnails/*' ! -iregex '.*\.\(jpe?g\|png\|gif\|webp\|bmp\|ico\|avif\|svg\)' 2>/dev/null
+
+# 3. 记下两样东西：图片目录的属主，和 EasyImage 对外的端口（PORTS 一列冒号左边的数字）
+stat -c '%u:%g' i
+docker compose ps
+
+# 4. 停掉 EasyImage（只停止，不删除），旧文件改名留作回滚
+docker compose stop
+mv docker-compose.yml docker-compose.easyimage.yml
+mv config config.easyimage
+sed -i 's#\./config:#./config.easyimage:#' docker-compose.easyimage.yml
+```
+
+新建 `docker-compose.yml`，`user` 填第 3 步看到的属主，`ports` 左边填 EasyImage 原来的端口；没有 `images` 目录就删掉那一行：
+
+```yaml
+name: picnook
+
+services:
+  picnook:
+    image: ghcr.io/lau0x/picnook:latest
+    container_name: picnook
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: .env
+    ports:
+      - "9000:18321"
+    volumes:
+      - ./i:/data/i
+      - ./images:/data/images:ro
+      - ./i-trash:/data/i-trash
+      - ./config:/data/config
+```
+
+`name: picnook` 不要省略。否则 Docker 会按目录名把它和旧的 easyimage 容器当成同一个项目，提示"孤儿容器"，用了 `--remove-orphans` 还会把旧容器删掉。
+
+再下载 `.env.example` 存为 `.env` 并填好：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Lau0x/picnook/main/.env.example -o .env
+```
+
+- `PICNOOK_BASE`：原来的图床网址
+- `PICNOOK_PASSWORD`、`PICNOOK_SECRET`：后台密码和签名密钥（`openssl rand -hex 32`）
+- `PICNOOK_EXTRA_DIRS=images=/data/images`：有 `images` 目录时加上
+- `PICNOOK_TRUSTED_PROXIES`：反向代理在另一台服务器时，按 `.env.example` 里的说明把它的 IP 加上
+- `PICNOOK_IMAGE_CORS=off`：反向代理已经加了跨域头时设置，见[跨域头只能有一个](#跨域头只能有一个)
+
+然后启动：
+
+```bash
+mkdir -p i-trash config && sudo chown <第3步的属主> i-trash config
+chmod 600 .env
+docker compose up -d
+docker compose ps        # STATUS 显示 healthy 就是正常
+```
+
+最后打开图床网址登录后台，进入「设置 → API Token → 从 EasyImage 导入」，粘贴 `config.easyimage/api_key.php` 的内容，再按 [7. 验证](#7-验证) 检查一遍。
+
+回滚到 EasyImage：
+
+```bash
+docker compose down && docker compose -f docker-compose.easyimage.yml up -d
+```
+
+观察几天没问题后，可以删掉旧容器（文件保留）：`docker compose -f docker-compose.easyimage.yml down`。
+
+### PHP 站点
 
 下面用 `<站点根目录>` 指 EasyImage 所在目录，也就是里面有 `i`、`config`、`api` 等文件夹的那个目录。常见位置：
 
@@ -166,13 +251,11 @@ nginx -t && nginx -s reload          # 1Panel 在面板里保存配置会自动�
 curl -sI https://img.example.com/i/<一张旧图的路径> | head -3
 # 上传目录里的脚本：应返回 404
 curl -s -o /dev/null -w '%{http_code}\n' https://img.example.com/i/test.php
-# 旧 API：应返回 "result":"success"
-curl -s -F image=@test.png -F token=<你的token> https://img.example.com/api/index.php
+# API 和 token：只带 token 不带图片，不会写入文件。应返回 "没有选择上传的文件"；返回 "Token 错误" 说明 token 没导入
+curl -s -F token=<你的token> https://img.example.com/api/index.php
 ```
 
-再打开 `https://img.example.com` 用新密码登录，试一下网页上传和后台管理。
-
-然后进入「设置 → API Token → 从 EasyImage 导入」，粘贴第 3 步复制的 `api_key.php` 内容并导入，再用 PicGo 传一张图确认。压缩、WebP、水印、防盗链也在「设置」里按需开启。
+再打开 `https://img.example.com` 用新密码登录，进入「设置 → API Token → 从 EasyImage 导入」，粘贴第 3 步复制的 `api_key.php` 内容并导入（导入后再跑一次上面的 API 检查），然后用网页和 PicGo 各传一张图确认。压缩、WebP、水印、防盗链也在「设置」里按需开启。
 
 ### 8. 清理
 
@@ -224,6 +307,14 @@ location / { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; pro
 - **全新安装**：如果图片不在 Nginx 能读到的目录里，可以省掉 `/i/` 那一段，全部反代给 picnook，由它自己返回图片。这样更简单，只是性能稍差。
 - **`Host` 和 `X-Real-IP` 两行不能少**：前者用于防跨站提交的来源校验，后者用于登录限流按真实 IP 计数。
 - **Caddy**：`reverse_proxy 127.0.0.1:18321` 即可，Caddy 默认会传递 Host。需要额外加 `header_up X-Real-IP {remote_host}`。
+
+### Nginx Proxy Manager
+
+在 Proxy Host 里把域名转发到 PicNook 即可，图片也由 PicNook 返回，不需要上面的 Nginx 配置。NPM 默认会传递 `Host` 和 `X-Real-IP`。需要注意三点：
+
+- **端口**：仓库里的 `docker-compose.yml` 默认只监听本机 `127.0.0.1:18321`。NPM 跑在别的服务器上，或者跑在 Docker 里访问不到宿主机的 127.0.0.1 时，把 `ports` 改成 `"18321:18321"`（或接替原来的端口），并用防火墙限制只允许 NPM 所在的 IP 访问。
+- **可信代理**：NPM 和 PicNook 在同一台机器的 Docker 里时不用改；NPM 在另一台服务器时，要把它的 IP 加进 `PICNOOK_TRUSTED_PROXIES`。否则所有访客都会被当成同一个 IP，有人连续输错几次密码，所有人都会被锁在后台外面 15 分钟。
+- **自定义配置**：如果在 Custom Nginx Configuration 里加了 `Access-Control-Allow-Origin`，要设置 `PICNOOK_IMAGE_CORS=off`，见下面的[跨域头只能有一个](#跨域头只能有一个)。
 
 ### 防盗链
 
@@ -328,7 +419,7 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 | `PICNOOK_IMAGE_CORS` | `-image-cors` | `on` | 图片响应是否带 `Access-Control-Allow-Origin: *`。如果反向代理（例如 Nginx Proxy Manager 的自定义配置）已经加了这个头，设为 `off`，否则会出现两个值，浏览器会判定跨域失败 |
 | `PICNOOK_MAX_MB` | `-max-mb` | `10` | 单张图片大小上限（MB）的初始值，之后在后台修改 |
 | `PICNOOK_LISTEN` | `-listen` | `127.0.0.1:18321`，Docker 内为 `:18321` | 监听地址 |
-| `PICNOOK_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 只有来自这些地址的请求，才会采信 `X-Real-IP` |
+| `PICNOOK_TRUSTED_PROXIES` | `-trusted-proxies` | `127.0.0.0/8,::1/128`，Docker 内另加私有网段 | 设置后替换默认值，不是追加。只有来自这些地址的请求，才会采信 `X-Real-IP` |
 
 ## 安全设计
 

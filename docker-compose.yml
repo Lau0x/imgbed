@@ -1,3 +1,9 @@
+# PicNook：https://github.com/Lau0x/picnook
+# 升级：docker compose pull && docker compose up -d（固定版本时先把 latest 改成新版本号）
+
+# 固定项目名。放进 Docker 版 EasyImage 的原目录时，避免和旧的 easyimage 容器被当成同一个项目
+name: picnook
+
 services:
   picnook:
     image: ghcr.io/lau0x/picnook:latest
@@ -7,12 +13,13 @@ services:
     user: "${PICNOOK_UID:-1000}:${PICNOOK_GID:-1000}"
     env_file: .env
     ports:
-      # 只监听本机，由宿主机上的 Nginx / OpenResty / Caddy 反向代理并提供 HTTPS
+      # 只监听本机，由宿主机上的 Nginx / OpenResty / Caddy 反向代理并提供 HTTPS。
+      # 反向代理在另一台服务器，或者要接替 Docker 版 EasyImage 原来的端口时，改成 "原端口:18321"，例如 "9000:18321"
       - "127.0.0.1:18321:18321"
     volumes:
       # 全新安装：图片存在 ./data/i，删除的图片在 ./data/i-trash，后台设置和 token 在 ./data/config
       - ./data:/data
-      # 从 EasyImage 迁移：注释掉上面一行，改成挂载原站点的 i 目录
+      # 从 EasyImage 迁移：注释掉上面一行，改成下面几行（放在 EasyImage 原目录里时，左边写 ./i、./images 即可）
       # - /原站点根目录/i:/data/i
       # - ./i-trash:/data/i-trash
       # - ./config:/data/config
