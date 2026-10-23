@@ -303,6 +303,20 @@ func (a *app) listDay(day string) []imageItem {
 	return items
 }
 
+// recentImages 返回最近上传的 n 张图片，从最新的日期往前找
+func (a *app) recentImages(n int) []imageItem {
+	var out []imageItem
+	for _, d := range a.recentDays(60) {
+		for _, it := range a.listDay(d) {
+			out = append(out, it)
+			if len(out) >= n {
+				return out
+			}
+		}
+	}
+	return out
+}
+
 func (a *app) handleAdmin(w http.ResponseWriter, r *http.Request) {
 	if !a.loggedIn(r) {
 		http.Redirect(w, r, "/login?next="+url.QueryEscape("/admin"), http.StatusSeeOther)

@@ -354,7 +354,12 @@ func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	s := a.store.get()
 	a.render(w, http.StatusOK, "index.html", map[string]interface{}{
-		"MaxMB": a.store.get().MaxMB,
+		"MaxMB":     s.MaxMB,
+		"Compress":  s.Compress,
+		"WebP":      s.Convert == "webp",
+		"Watermark": s.Watermark && s.WaterText != "",
+		"Recent":    a.recentImages(12),
 	})
 }
