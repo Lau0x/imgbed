@@ -79,8 +79,8 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
 .lb-in{background:var(--card);border-radius:calc(var(--radius) + 2px);overflow:hidden;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 300px}
 .lb-stage{position:relative;background:#0a0f19 repeating-conic-gradient(#141c2a 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:360px;max-height:84vh}
 .lb-stage img{max-width:100%;max-height:84vh;display:block}
-.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;cursor:pointer;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;backdrop-filter:blur(6px)}
-.lb-nav:hover{background:rgba(255,255,255,.28)}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);cursor:pointer;background:rgba(8,14,26,.55);color:#fff;display:grid;place-items:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.lb-nav:hover{background:var(--accent);border-color:var(--accent)}
 .lb-nav svg{width:20px;height:20px}
 .lb-prev{left:14px}.lb-next{right:14px}
 .lb-side{padding:22px;display:flex;flex-direction:column;gap:14px}
@@ -98,7 +98,8 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   .gallery.masonry .tile{margin-bottom:10px}
   .gallery.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
   .lib-head h1{font-size:24px}
-  .datebar select{max-width:42%}
+  .datebar{gap:8px}
+  .datebar select{padding:8px 26px 8px 10px;font-size:14px}
   .lb-in{grid-template-columns:1fr}
   .seg button span{display:none}
 }

@@ -1,18 +1,77 @@
-# PicNook
+<p align="center"><img src="docs/logo.svg" width="80" alt="PicNook"></p>
 
-PicNook 是一个轻量的自托管图床，给自己存图、贴图用的"小角落"。不依赖 PHP 和数据库，一个程序文件或一个 Docker 容器就能跑起来。
+<h1 align="center">PicNook</h1>
+
+<p align="center"><b>放图片的小角落</b> · 不依赖 PHP 和数据库的轻量自托管图床</p>
+
+<p align="center">
+  <a href="https://github.com/Lau0x/picnook/releases/latest"><img src="https://img.shields.io/github/v/release/Lau0x/picnook?color=2563eb&label=%E7%89%88%E6%9C%AC" alt="最新版本"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Lau0x/picnook?color=2563eb&label=%E8%AE%B8%E5%8F%AF%E8%AF%81" alt="MIT 许可证"></a>
+  <a href="https://github.com/Lau0x/picnook/pkgs/container/picnook"><img src="https://img.shields.io/badge/docker-ghcr.io%2Flau0x%2Fpicnook-2563eb?logo=docker&logoColor=white" alt="Docker 镜像"></a>
+  <img src="https://img.shields.io/badge/Go-1.26-2563eb?logo=go&logoColor=white" alt="Go 1.26">
+  <img src="https://img.shields.io/badge/%E9%95%9C%E5%83%8F-%E7%BA%A6%2025%20MB-2563eb" alt="镜像约 25 MB">
+</p>
+
+<p align="center">
+  <a href="#快速开始docker全新安装">快速开始</a> ·
+  <a href="#从-easyimage-迁移">从 EasyImage 迁移</a> ·
+  <a href="#后台设置">后台设置</a> ·
+  <a href="#上传工具配置">PicGo 配置</a> ·
+  <a href="#界面预览">界面预览</a>
+</p>
+
+<p align="center"><img src="docs/screenshots/upload.webp" alt="PicNook 上传页" width="100%"></p>
+
+PicNook 是一个给自己存图、贴图用的图床。一个程序文件或一个 Docker 容器就能跑起来，不需要 PHP、数据库或任何运行环境。拖进去一张图，拿到一条链接，写博客、发帖、做公众号排版时随手就能用。
 
 正在用 [EasyImage 2.0](https://github.com/icret/EasyImages2.0) 的话，可以直接换过来：PicNook 沿用原来的图片目录，**已经贴出去的图片链接一个都不会断**，PicGo 等上传工具也不用改配置，见[从 EasyImage 迁移](#从-easyimage-迁移)。
 
-- 单个可执行文件，Docker 镜像约 25 MB，不需要数据库、PHP 或任何运行环境
-- 网页上传：点击、拖拽、粘贴，一键复制链接 / Markdown / HTML / BBCode
-- 兼容 EasyImage 的上传 API（`/api/index.php`，字段 `image` + `token`）和返回格式
-- API Token 管理：有效期、禁用、按 token 查看和批量删除上传的图片，可一键导入 EasyImage 的 token
-- 上传时压缩、转 WebP、加文字水印（支持中文字体），按 EXIF 自动转正照片方向
+## 功能
+
+**上传与分享**
+- 拖拽、粘贴截图、多选上传，带进度条，最多同时传 3 张
+- 一键复制直链 / Markdown / HTML / BBCode，批量上传后可以一次复制全部
+- 上传页显示最近上传，点一下就复制
+- 兼容 EasyImage 的上传 API（`/api/index.php`，字段 `image` + `token`），PicGo、ShareX 等工具直接用
+
+**图片处理**
+- 上传时自动压缩、统一转 WebP，处理后变大就保留原图
+- 文字水印，内置思源黑体常用 6763 字，中文开箱即用，带实时预览
+- 照片按 EXIF 自动转正，重新编码时去掉拍摄地点等信息
+
+**管理**
+- 按日期浏览，瀑布流按原始比例排列，也可以切换成网格
+- 多选后批量复制链接或批量删除，大图预览支持键盘左右切换
+- 删除的图片进回收目录，误删可以找回
+- API Token：有效期、禁用、按 token 查看和删除它上传的图片，一键导入 EasyImage 的 token
+
+**安全**
+- 不执行任何上传的内容，按文件内容判断格式，伪装成图片的脚本会被拒绝
 - 防盗链：Referer 白名单，支持通配子域名
-- 后台按日期浏览、删除图片，删除的图片进回收目录，误删可以找回
+- 后台密码加盐哈希保存，改密码后其他设备自动下线；登录失败过多会临时锁定
+
+**部署**
+- 单个可执行文件，Docker 镜像约 25 MB，支持 amd64 和 arm64
+- 浅色 / 深色模式自动切换，手机上也能正常使用
 
 > PicNook 是独立开发的项目，与 EasyImage 及其作者 [icret](https://github.com/icret) 没有关联。它兼容 EasyImage 的目录结构和上传 API，是为了方便迁移，代码没有复用 EasyImage 的任何部分。
+
+## 界面预览
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/library.webp" alt="图片管理"><p align="center">图片管理：按日期浏览，瀑布流排列</p></td>
+    <td width="50%"><img src="docs/screenshots/lightbox.webp" alt="大图预览"><p align="center">大图预览：尺寸、大小、一键复制</p></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-watermark.webp" alt="水印设置"><p align="center">水印设置：内置中文字体，实时预览</p></td>
+    <td><img src="docs/screenshots/settings-tokens.webp" alt="API Token 管理"><p align="center">API Token：有效期、禁用、上传统计</p></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/library-dark.webp" alt="深色模式"><p align="center">深色模式：跟随系统自动切换</p></td>
+    <td><p align="center"><img src="docs/screenshots/mobile-upload.webp" alt="手机上传页" width="48%"> <img src="docs/screenshots/mobile-library.webp" alt="手机图片管理" width="48%"></p><p align="center">手机上也能正常使用</p></td>
+  </tr>
+</table>
 
 ## 为什么不用 PHP
 

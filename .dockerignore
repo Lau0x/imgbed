@@ -6,3 +6,4 @@ deploy
 test
 *.md
 .env
+docs
