@@ -91,22 +91,22 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
 }
 </style>
 <main class="wrap">
-  <section class="hero rise" id="drop" tabindex="0" role="button" aria-label="选择要上传的图片">
+  <section class="hero rise" id="drop" tabindex="0" role="button" aria-label="{{t "选择要上传的图片"}}">
     <div class="hero-in">
       <div class="stack" aria-hidden="true">
         <span class="ph ph1"></span><span class="ph ph2"></span><span class="ph ph3"></span>
         <span class="upb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6.5 11.5L12 6l5.5 5.5"/></svg></span>
       </div>
-      <h1 id="drop-title">拖拽图片到这里上传</h1>
-      <p class="lead">也可以直接粘贴截图（<kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd>），一次可以选多张</p>
-      <span class="btn btn-primary btn-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg>选择图片</span>
+      <h1 id="drop-title">{{t "拖拽图片到这里上传"}}</h1>
+      <p class="lead">{{t "也可以直接粘贴截图（"}}<kbd>⌘</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd>{{t "），一次可以选多张"}}</p>
+      <span class="btn btn-primary btn-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg>{{t "选择图片"}}</span>
       <div class="chips">
         <span class="chip">JPG · PNG · GIF · WebP</span>
-        <span class="chip">单张 ≤ {{.MaxMB}} MB</span>
-        {{if .Compress}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>自动压缩</span>{{end}}
-        {{if .WebP}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>转为 WebP</span>{{end}}
-        {{if .Watermark}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>添加水印</span>{{end}}
-        {{if not (or .Compress .WebP .Watermark)}}<span class="chip">保存原图</span>{{end}}
+        <span class="chip">{{t "单张 ≤ %d MB" .MaxMB}}</span>
+        {{if .Compress}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>{{t "自动压缩"}}</span>{{end}}
+        {{if .WebP}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>{{t "转为 WebP"}}</span>{{end}}
+        {{if .Watermark}}<span class="chip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>{{t "添加水印"}}</span>{{end}}
+        {{if not (or .Compress .WebP .Watermark)}}<span class="chip">{{t "保存原图"}}</span>{{end}}
       </div>
     </div>
   </section>
@@ -114,9 +114,9 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
 
   <div class="bar rise rise-2">
     <div class="bar-l">
-      <span class="lbl">复制格式</span>
-      <div class="seg" id="fmt" role="tablist" aria-label="复制格式">
-        <button type="button" data-fmt="url">直链</button>
+      <span class="lbl">{{t "复制格式"}}</span>
+      <div class="seg" id="fmt" role="tablist" aria-label="{{t "复制格式"}}">
+        <button type="button" data-fmt="url">{{t "直链"}}</button>
         <button type="button" data-fmt="md">Markdown</button>
         <button type="button" data-fmt="html">HTML</button>
         <button type="button" data-fmt="bb">BBCode</button>
@@ -124,8 +124,8 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
     </div>
     <div class="bar-r">
       <span id="count"></span>
-      <button type="button" class="btn btn-sm" id="copyall" disabled>复制全部</button>
-      <button type="button" class="btn btn-sm btn-ghost" id="clear" disabled>清空</button>
+      <button type="button" class="btn btn-sm" id="copyall" disabled>{{t "复制全部"}}</button>
+      <button type="button" class="btn btn-sm btn-ghost" id="clear" disabled>{{t "清空"}}</button>
     </div>
   </div>
 
@@ -134,11 +134,11 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
   {{if .Recent}}
   <section class="recent rise rise-3">
     <div class="recent-head">
-      <h2>最近上传<small>点击图片按上面选的格式复制</small></h2>
-      <a href="/admin">查看全部 →</a>
+      <h2>{{t "最近上传"}}<small>{{t "点击图片按上面选的格式复制"}}</small></h2>
+      <a href="/admin">{{t "查看全部 →"}}</a>
     </div>
     <div class="rgrid">
-      {{range $i, $img := .Recent}}<button type="button" class="rc" data-url="{{.URL}}" title="{{.Name}}" style="animation-delay:{{$i}}0ms"><img src="{{.URL}}" alt="" loading="lazy"><span class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>复制</span><span class="cap">{{.Name}}</span></button>{{end}}
+      {{range $i, $img := .Recent}}<button type="button" class="rc" data-url="{{.URL}}" title="{{.Name}}" style="animation-delay:{{$i}}0ms"><img src="{{.URL}}" alt="" loading="lazy"><span class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>{{t "复制"}}</span><span class="cap">{{.Name}}</span></button>{{end}}
     </div>
   </section>
   {{end}}
@@ -152,15 +152,23 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
   var countEl = document.getElementById('count');
   var copyAll = document.getElementById('copyall');
   var clearBtn = document.getElementById('clear');
-  var FMT_LABEL = { url: '直链', md: 'Markdown', html: 'HTML', bb: 'BBCode' };
+  var TX = {
+    url: {{t "直链"}}, tap: {{t "点击选择图片上传"}}, tapLead: {{t "一次可以选多张，也可以从相册直接选取"}},
+    count: {{t "本次成功 %d / %d 张"}}, queued: {{t "排队中…"}}, uploading: {{t "上传中…"}}, netErr: {{t "网络错误，上传失败"}},
+    copy: {{t "复制"}}, copied: {{t "已复制%s"}}, copyFmt: {{t "复制 %s"}}, open: {{t "打开"}}, copiedN: {{t "已复制 %d 条%s"}},
+    release: {{t "松开即可上传"}}
+  };
+  // f 依次替换格式串里的 %d / %s
+  function f(s) { var a = [].slice.call(arguments, 1); return s.replace(/%[ds]/g, function () { return a.shift(); }); }
+  var FMT_LABEL = { url: TX.url, md: 'Markdown', html: 'HTML', bb: 'BBCode' };
   // 触屏设备不能拖拽，提示改成点击选择
   if (window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches) {
-    title.textContent = '点击选择图片上传';
-    drop.querySelector('.lead').textContent = '一次可以选多张，也可以从相册直接选取';
+    title.textContent = TX.tap;
+    drop.querySelector('.lead').textContent = TX.tapLead;
   }
   var TITLE = title.textContent;
   var fmt = 'url';
-  try { fmt = localStorage.getItem('picnook.fmt') || 'url'; } catch (e) {}
+  try { fmt = localStorage.getItem('picpier.fmt') || 'url'; } catch (e) {}
   var done = [], queue = [], active = 0, total = 0;
 
   function build(f, url, alt) {
@@ -174,7 +182,7 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
   }
   function setFmt(f) {
     fmt = FMT_LABEL[f] ? f : 'url';
-    try { localStorage.setItem('picnook.fmt', fmt); } catch (e) {}
+    try { localStorage.setItem('picpier.fmt', fmt); } catch (e) {}
     document.querySelectorAll('#fmt button').forEach(function (b) {
       b.classList.toggle('on', b.dataset.fmt === fmt);
       b.setAttribute('aria-selected', b.dataset.fmt === fmt);
@@ -182,7 +190,7 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
     done.forEach(function (d) { d.render(); });
   }
   function updateCount() {
-    countEl.textContent = total ? '本次成功 ' + done.length + ' / ' + total + ' 张' : '';
+    countEl.textContent = total ? f(TX.count, done.length, total) : '';
     copyAll.disabled = done.length === 0;
     clearBtn.disabled = total === 0 || active > 0;
   }
@@ -204,7 +212,7 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
     var top = el('div', 'meta-top');
     top.append(el('div', 'fname', file.name), el('div', 'fsize', human(file.size)));
     var bar = el('div', 'pbar'), fill = el('i'); bar.append(fill);
-    var status = el('div', 'status', '排队中…');
+    var status = el('div', 'status', TX.queued);
     meta.append(top, bar, status);
     card.append(img, meta);
     results.prepend(card);
@@ -215,7 +223,7 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
   function pump() { while (active < 3 && queue.length) send(queue.shift()); }
   function send(job) {
     active++;
-    job.status.textContent = '上传中…';
+    job.status.textContent = TX.uploading;
     var fd = new FormData();
     fd.append('image', job.file);
     var xhr = new XMLHttpRequest();
@@ -232,7 +240,7 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
     if (!d || d.result !== 'success') {
       job.bar.remove();
       job.status.className = 'status err';
-      job.status.textContent = (d && d.message) || '网络错误，上传失败';
+      job.status.textContent = (d && d.message) || TX.netErr;
       if (d && d.code === 401) location.href = '/login';
       updateCount(); pump(); return;
     }
@@ -243,20 +251,20 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
     var out = el('div', 'out');
     var field = el('input'); field.type = 'text'; field.readOnly = true;
     field.addEventListener('focus', function () { field.select(); });
-    var btn = el('button', 'btn btn-primary btn-sm', '复制'); btn.type = 'button';
-    btn.addEventListener('click', function () { copyText(field.value, '已复制' + FMT_LABEL[fmt]); });
+    var btn = el('button', 'btn btn-primary btn-sm', TX.copy); btn.type = 'button';
+    btn.addEventListener('click', function () { copyText(field.value, f(TX.copied, FMT_LABEL[fmt])); });
     out.append(field, btn);
     var alts = el('div', 'alts');
     var entry = { url: d.url, alt: alt, render: function () {
       field.value = build(fmt, d.url, alt);
       alts.textContent = '';
-      Object.keys(FMT_LABEL).forEach(function (f) {
-        if (f === fmt) return;
-        var c = el('button', 'alt', '复制 ' + FMT_LABEL[f]); c.type = 'button';
-        c.addEventListener('click', function () { copyText(build(f, d.url, alt), '已复制' + FMT_LABEL[f]); });
+      Object.keys(FMT_LABEL).forEach(function (k) {
+        if (k === fmt) return;
+        var c = el('button', 'alt', f(TX.copyFmt, FMT_LABEL[k])); c.type = 'button';
+        c.addEventListener('click', function () { copyText(build(k, d.url, alt), f(TX.copied, FMT_LABEL[k])); });
         alts.append(c);
       });
-      var o = el('a', 'alt', '打开'); o.href = d.url; o.target = '_blank'; o.rel = 'noopener';
+      var o = el('a', 'alt', TX.open); o.href = d.url; o.target = '_blank'; o.rel = 'noopener';
       alts.append(o);
     } };
     entry.render();
@@ -276,18 +284,18 @@ kbd{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;b
   });
   copyAll.addEventListener('click', function () {
     var lines = done.slice().reverse().map(function (d) { return build(fmt, d.url, d.alt); });
-    copyText(lines.join('\n'), '已复制 ' + lines.length + ' 条' + FMT_LABEL[fmt]);
+    copyText(lines.join('\n'), f(TX.copiedN, lines.length, FMT_LABEL[fmt]));
   });
   clearBtn.addEventListener('click', function () { results.textContent = ''; done = []; total = 0; updateCount(); });
   document.querySelectorAll('.rc').forEach(function (b) {
-    b.addEventListener('click', function () { copyText(build(fmt, b.dataset.url, ''), '已复制' + FMT_LABEL[fmt]); });
+    b.addEventListener('click', function () { copyText(build(fmt, b.dataset.url, ''), f(TX.copied, FMT_LABEL[fmt])); });
   });
 
   drop.addEventListener('click', function () { input.click(); });
   drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
   input.addEventListener('change', function () { handle(input.files); input.value = ''; });
   var depth = 0;
-  function over(on) { drop.classList.toggle('over', on); title.textContent = on ? '松开即可上传' : TITLE; }
+  function over(on) { drop.classList.toggle('over', on); title.textContent = on ? TX.release : TITLE; }
   document.addEventListener('dragenter', function (e) { e.preventDefault(); depth++; over(true); });
   document.addEventListener('dragover', function (e) { e.preventDefault(); });
   document.addEventListener('dragleave', function () { depth = Math.max(0, depth - 1); if (!depth) over(false); });

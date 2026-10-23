@@ -347,7 +347,7 @@ func (a *app) handleAdmin(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
+	a.render(w, r, http.StatusOK, "admin.html", map[string]interface{}{
 		"Groups": a.dayGroups(days), "Day": day, "Images": images, "Msg": r.URL.Query().Get("msg"),
 		"Total": humanSize(total), "Prev": prev, "Next": next,
 	})
@@ -406,7 +406,7 @@ func (a *app) handleAdminDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	var msg string
 	if len(rels) == 1 {
-		msg = deleteMessage(a.trash(rels[0]))
+		msg = a.T(r, deleteMessage(a.trash(rels[0])))
 	} else {
 		ok := 0
 		for _, rel := range rels {
@@ -414,9 +414,9 @@ func (a *app) handleAdminDelete(w http.ResponseWriter, r *http.Request) {
 				ok++
 			}
 		}
-		msg = fmt.Sprintf("已删除 %d 张图片（已移到回收目录）", ok)
+		msg = a.T(r, "已删除 %d 张图片（已移到回收目录）", ok)
 		if ok < len(rels) {
-			msg += fmt.Sprintf("，%d 张删除失败", len(rels)-ok)
+			msg += a.T(r, "，%d 张删除失败", len(rels)-ok)
 		}
 	}
 	back := r.PostFormValue("back")
@@ -434,19 +434,19 @@ func (a *app) handleAdminDelete(w http.ResponseWriter, r *http.Request) {
 func (a *app) handleSignedDelete(w http.ResponseWriter, r *http.Request) {
 	rel, sig := r.FormValue("f"), r.FormValue("s")
 	if !hmac.Equal([]byte(sig), []byte(a.sign("del|"+rel))) {
-		a.render(w, http.StatusForbidden, "del.html", map[string]string{"Msg": "删除链接无效"})
+		a.render(w, r, http.StatusForbidden, "del.html", map[string]string{"Msg": a.T(r, "删除链接无效")})
 		return
 	}
 	data := map[string]string{"F": rel, "S": sig, "URL": a.cfg.baseURL + "/i/" + rel}
 	switch r.Method {
 	case http.MethodGet:
-		a.render(w, http.StatusOK, "del.html", data)
+		a.render(w, r, http.StatusOK, "del.html", data)
 	case http.MethodPost:
 		if !sameOrigin(r) {
 			http.Error(w, "禁止访问", http.StatusForbidden)
 			return
 		}
-		a.render(w, http.StatusOK, "del.html", map[string]string{"Msg": deleteMessage(a.trash(rel))})
+		a.render(w, r, http.StatusOK, "del.html", map[string]string{"Msg": a.T(r, deleteMessage(a.trash(rel)))})
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

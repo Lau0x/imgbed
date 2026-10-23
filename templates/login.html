@@ -13,16 +13,17 @@
 .login .err{background:var(--danger-soft);padding:9px 12px;border-radius:var(--radius-sm);font-size:14px;margin:0}
 .login-foot{text-align:center;margin-top:22px;font-size:12px;color:var(--muted)}
 </style>
+<div class="prefs-float">{{template "prefs"}}</div>
 <main class="login">
   <div class="login-card rise">
     <div class="login-arch" aria-hidden="true"></div>
-    <h1>登录 Pic<em>Nook</em></h1>
-    <p class="tag">放图片的小角落</p>
+    <h1>{{t "登录"}} Pic<em>Pier</em></h1>
+    <p class="tag">{{t "图片停靠的栈桥"}}</p>
     <form class="card" method="post" action="/login">
       {{with .Error}}<p class="err">{{.}}</p>{{end}}
       <input type="hidden" name="next" value="{{.Next}}">
-      <input type="password" name="password" placeholder="管理密码" autocomplete="current-password" autofocus required>
-      <button class="btn btn-primary" type="submit">登录</button>
+      <input type="password" name="password" placeholder="{{t "管理密码"}}" autocomplete="current-password" autofocus required>
+      <button class="btn btn-primary" type="submit">{{t "登录"}}</button>
     </form>
   </div>
 </main>

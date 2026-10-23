@@ -1,17 +1,17 @@
-# PicNook：https://github.com/Lau0x/picnook
+# PicPier：https://github.com/Lau0x/picpier
 # 升级：docker compose pull && docker compose up -d
 # latest 始终是最新的正式版本；想固定版本就把 latest 改成具体版本号，例如 0.4.3
 
 # 固定项目名。放进 Docker 版 EasyImage 的原目录时，避免和旧的 easyimage 容器被当成同一个项目
-name: picnook
+name: picpier
 
 services:
-  picnook:
-    image: ghcr.io/lau0x/picnook:latest
-    container_name: picnook
+  picpier:
+    image: ghcr.io/lau0x/picpier:latest
+    container_name: picpier
     restart: unless-stopped
     # 容器以这个用户身份读写图片，要和图片目录的属主一致（迁移时用 stat -c '%u:%g' 旧的i目录 查看）
-    user: "${PICNOOK_UID:-1000}:${PICNOOK_GID:-1000}"
+    user: "${PICPIER_UID:-1000}:${PICPIER_GID:-1000}"
     env_file: .env
     ports:
       # 只监听本机，由宿主机上的 Nginx / OpenResty / Caddy 反向代理并提供 HTTPS。
@@ -24,5 +24,5 @@ services:
       # - /原站点根目录/i:/data/i
       # - ./i-trash:/data/i-trash
       # - ./config:/data/config
-      # 原站点还有早期版本的 images 目录时，再加下面这行，并在 .env 里设置 PICNOOK_EXTRA_DIRS=images=/data/images
+      # 原站点还有早期版本的 images 目录时，再加下面这行，并在 .env 里设置 PICPIER_EXTRA_DIRS=images=/data/images
       # - /原站点根目录/images:/data/images:ro

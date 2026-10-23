@@ -1,4 +1,4 @@
-module github.com/Lau0x/picnook
+module github.com/Lau0x/picpier
 
 go 1.26.0
 

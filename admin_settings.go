@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"html/template"
 	"image"
 	"image/color"
@@ -35,13 +34,6 @@ var templateFuncs = template.FuncMap{
 			return ""
 		}
 		return time.Unix(ts, 0).Format("2006-01-02")
-	},
-	// dayLabel 把 2026/10/23 显示成 2026 年 10 月 23 日
-	"dayLabel": func(d string) string {
-		if len(d) != 10 {
-			return d
-		}
-		return d[:4] + " 年 " + strings.TrimPrefix(d[5:7], "0") + " 月 " + strings.TrimPrefix(d[8:], "0") + " 日"
 	},
 	// mask 只显示 token 的首尾几位，完整值通过复制按钮获取
 	"mask": func(s string) string {
@@ -94,7 +86,9 @@ func (a *app) requireAdmin(w http.ResponseWriter, r *http.Request, write bool) b
 	return true
 }
 
+// backTo 带着提示回到设置页；msg 按当前语言翻译（已经翻译过的格式化文字原样保留）
 func backTo(w http.ResponseWriter, r *http.Request, msg, anchor string) {
+	msg = tr(langOf(r), msg)
 	http.Redirect(w, r, "/admin/settings?msg="+url.QueryEscape(msg)+"#"+anchor, http.StatusSeeOther)
 }
 
@@ -143,7 +137,7 @@ func (a *app) handleSettings(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, row)
 	}
 	_, custom := a.currentFont()
-	a.render(w, http.StatusOK, "settings.html", map[string]interface{}{
+	a.render(w, r, http.StatusOK, "settings.html", map[string]interface{}{
 		"S":           s,
 		"Refs":        strings.Join(s.AllowedRefs, "\n"),
 		"Tokens":      rows,
@@ -202,7 +196,7 @@ func (a *app) saveSettings(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		backTo(w, r, "保存失败："+err.Error(), anchor)
+		backTo(w, r, a.T(r, "保存失败：%s", a.T(r, err.Error())), anchor)
 		return
 	}
 	backTo(w, r, "设置已保存", anchor)
@@ -242,12 +236,12 @@ func (a *app) handleTokens(w http.ResponseWriter, r *http.Request) {
 					if note != "" {
 						s.Tokens[i].Note = note
 					}
-					msg = fmt.Sprintf("已修改 Token #%d 的有效期", s.Tokens[i].ID)
+					msg = a.T(r, "已修改 Token #%d 的有效期", s.Tokens[i].ID)
 					return nil
 				}
 			}
 			s.Tokens = append(s.Tokens, Token{ID: maxID + 1, Value: value, Note: note, Created: time.Now().Unix(), Expires: expires})
-			msg = fmt.Sprintf("已添加 Token #%d", maxID+1)
+			msg = a.T(r, "已添加 Token #%d", maxID+1)
 			return nil
 		})
 	case "disable", "enable":
@@ -280,12 +274,12 @@ func (a *app) handleTokens(w http.ResponseWriter, r *http.Request) {
 				n++
 			}
 		}
-		msg = fmt.Sprintf("已删除该 Token 上传的 %d 张图片（已移到回收目录）", n)
+		msg = a.T(r, "已删除该 Token 上传的 %d 张图片（已移到回收目录）", n)
 	default:
 		err = errors.New("未知操作")
 	}
 	if err != nil {
-		backTo(w, r, "操作失败："+err.Error(), "tokens")
+		backTo(w, r, a.T(r, "操作失败：%s", a.T(r, err.Error())), "tokens")
 		return
 	}
 	backTo(w, r, msg, "tokens")
@@ -325,10 +319,10 @@ func (a *app) handleTokenImport(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		backTo(w, r, "导入失败："+err.Error(), "tokens")
+		backTo(w, r, a.T(r, "导入失败：%s", a.T(r, err.Error())), "tokens")
 		return
 	}
-	backTo(w, r, fmt.Sprintf("导入 %d 个 Token，跳过已存在的 %d 个", added, skipped), "tokens")
+	backTo(w, r, a.T(r, "导入 %d 个 Token，跳过已存在的 %d 个", added, skipped), "tokens")
 }
 
 // tokenFiles 返回某个 token 上传、且现在仍然存在的图片
@@ -377,11 +371,11 @@ func (a *app) handleTokenFiles(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].mod.After(items[j].mod) })
-	a.render(w, http.StatusOK, "admin.html", map[string]interface{}{
+	a.render(w, r, http.StatusOK, "admin.html", map[string]interface{}{
 		"Groups": a.dayGroups(a.recentDays(180)),
 		"Day":    "",
-		"Title":  fmt.Sprintf("Token #%d 上传的图片", tok.ID),
-		"Extra":  template.HTML(`<a href="/admin/settings#tokens">返回 Token 管理</a>`),
+		"Title":  a.T(r, "Token #%d 上传的图片", tok.ID),
+		"Extra":  template.HTML(`<a href="/admin/settings#tokens">` + template.HTMLEscapeString(a.T(r, "返回 Token 管理")) + `</a>`),
 		"Images": items,
 	})
 }

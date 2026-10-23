@@ -1,4 +1,4 @@
-// PicNook 是一个不依赖 PHP 的自托管图床，兼容 EasyImage 的 /i/年/月/日/文件名 目录结构和上传 API，方便迁移。
+// PicPier 是一个不依赖 PHP 的自托管图床，兼容 EasyImage 的 /i/年/月/日/文件名 目录结构和上传 API，方便迁移。
 package main
 
 import (
@@ -56,7 +56,7 @@ var extraPrefixRe = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 type app struct {
 	cfg     config
-	tmpl    *template.Template
+	tmpl    map[string]*template.Template // 按语言区分
 	limiter *loginLimiter
 	secure  bool
 	store   *settingsStore
@@ -68,17 +68,30 @@ type app struct {
 	fontCustom bool
 }
 
-// envOr 让每个命令行参数都能用环境变量设置，方便 Docker 部署
+// legacyEnvWarned 记录已经提示过的旧变量名，每个只提示一次
+var legacyEnvWarned = map[string]bool{}
+
+// envOr 让每个命令行参数都能用环境变量设置，方便 Docker 部署。
+// 项目曾叫 PicNook，读不到 PICPIER_ 开头的变量时，兼容旧的 PICNOOK_ 前缀。
 func envOr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	if legacy := strings.Replace(key, "PICPIER_", "PICNOOK_", 1); legacy != key {
+		if v := os.Getenv(legacy); v != "" {
+			if !legacyEnvWarned[legacy] {
+				legacyEnvWarned[legacy] = true
+				log.Printf("提示：%s 是旧的变量名，请改成 %s", legacy, key)
+			}
+			return v
+		}
 	}
 	return def
 }
 
 // healthcheck 供 Docker HEALTHCHECK 使用：镜像里没有 curl，用程序自己请求 /healthz
 func healthcheck() {
-	host, port, err := net.SplitHostPort(envOr("PICNOOK_LISTEN", "127.0.0.1:18321"))
+	host, port, err := net.SplitHostPort(envOr("PICPIER_LISTEN", "127.0.0.1:18321"))
 	if err != nil {
 		os.Exit(1)
 	}
@@ -93,15 +106,15 @@ func healthcheck() {
 	os.Exit(0)
 }
 
-// resetPassword 清除后台改过的密码，重启后恢复使用 PICNOOK_PASSWORD 登录。
-// 用法：picnook reset-password [配置目录]，Docker 里是 docker compose exec picnook /picnook reset-password
+// resetPassword 清除后台改过的密码，重启后恢复使用 PICPIER_PASSWORD 登录。
+// 用法：picpier reset-password [配置目录]，Docker 里是 docker compose exec picpier /picpier reset-password
 func resetPassword(args []string) {
-	dir := envOr("PICNOOK_CONFIG_DIR", "")
+	dir := envOr("PICPIER_CONFIG_DIR", "")
 	if len(args) > 0 {
 		dir = args[0]
 	}
 	if dir == "" {
-		log.Fatal("请指定配置目录：picnook reset-password <配置目录>（Docker 内为 /data/config）")
+		log.Fatal("请指定配置目录：picpier reset-password <配置目录>（Docker 内为 /data/config）")
 	}
 	p := filepath.Join(dir, "settings.json")
 	b, err := os.ReadFile(p)
@@ -114,7 +127,7 @@ func resetPassword(args []string) {
 		log.Fatalf("解析 %s 失败：%v", p, err)
 	}
 	if _, ok := m["password_hash"]; !ok {
-		fmt.Println("后台没有改过密码，当前使用的就是 PICNOOK_PASSWORD，无需重置")
+		fmt.Println("后台没有改过密码，当前使用的就是 PICPIER_PASSWORD，无需重置")
 		os.Exit(0)
 	}
 	delete(m, "password_hash")
@@ -125,7 +138,7 @@ func resetPassword(args []string) {
 	if err != nil {
 		log.Fatalf("写入 %s 失败：%v", p, err)
 	}
-	fmt.Println("已清除后台设置的密码。重启 PicNook 后，用 PICNOOK_PASSWORD 登录")
+	fmt.Println("已清除后台设置的密码。重启 PicPier 后，用 PICPIER_PASSWORD 登录")
 	os.Exit(0)
 }
 
@@ -139,19 +152,19 @@ func main() {
 	var cfg config
 	var maxMB int64
 	var trusted, extra, imageCORS string
-	defaultMB, err := strconv.ParseInt(envOr("PICNOOK_MAX_MB", "10"), 10, 64)
+	defaultMB, err := strconv.ParseInt(envOr("PICPIER_MAX_MB", "10"), 10, 64)
 	if err != nil {
-		log.Fatal("PICNOOK_MAX_MB 必须是整数")
+		log.Fatal("PICPIER_MAX_MB 必须是整数")
 	}
-	flag.StringVar(&cfg.listen, "listen", envOr("PICNOOK_LISTEN", "127.0.0.1:18321"), "监听地址（PICNOOK_LISTEN）")
-	flag.StringVar(&cfg.imagesDir, "images", envOr("PICNOOK_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（PICNOOK_IMAGES）")
-	flag.StringVar(&cfg.trashDir, "trash", envOr("PICNOOK_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（PICNOOK_TRASH）")
-	flag.StringVar(&cfg.configDir, "config-dir", envOr("PICNOOK_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 picnook-config（PICNOOK_CONFIG_DIR）")
-	flag.StringVar(&cfg.baseURL, "base", envOr("PICNOOK_BASE", ""), "图床网址，例如 https://img.example.com（PICNOOK_BASE）")
-	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（PICNOOK_MAX_MB）")
-	flag.StringVar(&imageCORS, "image-cors", envOr("PICNOOK_IMAGE_CORS", "on"), "图片响应是否带跨域头 on/off，反向代理已经加了时设为 off（PICNOOK_IMAGE_CORS）")
-	flag.StringVar(&extra, "extra-dirs", envOr("PICNOOK_EXTRA_DIRS", ""), "只读的旧图片目录，格式 前缀=目录，逗号分隔，例如 images=/data/images（PICNOOK_EXTRA_DIRS）")
-	flag.StringVar(&trusted, "trusted-proxies", envOr("PICNOOK_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（PICNOOK_TRUSTED_PROXIES）")
+	flag.StringVar(&cfg.listen, "listen", envOr("PICPIER_LISTEN", "127.0.0.1:18321"), "监听地址（PICPIER_LISTEN）")
+	flag.StringVar(&cfg.imagesDir, "images", envOr("PICPIER_IMAGES", ""), "图片目录，即原 EasyImage 站点下的 i 目录（PICPIER_IMAGES）")
+	flag.StringVar(&cfg.trashDir, "trash", envOr("PICPIER_TRASH", ""), "删除的图片移到这里，默认是图片目录旁的 i-trash（PICPIER_TRASH）")
+	flag.StringVar(&cfg.configDir, "config-dir", envOr("PICPIER_CONFIG_DIR", ""), "后台配置、上传日志和水印字体的目录，默认是图片目录旁的 picpier-config（PICPIER_CONFIG_DIR）")
+	flag.StringVar(&cfg.baseURL, "base", envOr("PICPIER_BASE", ""), "图床网址，例如 https://img.example.com（PICPIER_BASE）")
+	flag.Int64Var(&maxMB, "max-mb", defaultMB, "单张图片大小上限的初始值，单位 MB，之后可在后台修改（PICPIER_MAX_MB）")
+	flag.StringVar(&imageCORS, "image-cors", envOr("PICPIER_IMAGE_CORS", "on"), "图片响应是否带跨域头 on/off，反向代理已经加了时设为 off（PICPIER_IMAGE_CORS）")
+	flag.StringVar(&extra, "extra-dirs", envOr("PICPIER_EXTRA_DIRS", ""), "只读的旧图片目录，格式 前缀=目录，逗号分隔，例如 images=/data/images（PICPIER_EXTRA_DIRS）")
+	flag.StringVar(&trusted, "trusted-proxies", envOr("PICPIER_TRUSTED_PROXIES", "127.0.0.0/8,::1/128"), "反向代理地址段，逗号分隔（PICPIER_TRUSTED_PROXIES）")
 	flag.Parse()
 
 	for _, s := range strings.Split(trusted, ",") {
@@ -170,7 +183,7 @@ func main() {
 		cfg.imageCORS = true
 	case "off", "false", "0":
 	default:
-		log.Fatalf("PICNOOK_IMAGE_CORS 只能是 on 或 off：%s", imageCORS)
+		log.Fatalf("PICPIER_IMAGE_CORS 只能是 on 或 off：%s", imageCORS)
 	}
 
 	for _, s := range strings.Split(extra, ",") {
@@ -192,9 +205,9 @@ func main() {
 		cfg.extraDirs = append(cfg.extraDirs, extraDir{prefix: prefix, dir: abs})
 	}
 
-	cfg.password = os.Getenv("PICNOOK_PASSWORD")
-	cfg.secret = []byte(os.Getenv("PICNOOK_SECRET"))
-	for _, t := range strings.Split(os.Getenv("PICNOOK_TOKENS"), ",") {
+	cfg.password = envOr("PICPIER_PASSWORD", "")
+	cfg.secret = []byte(envOr("PICPIER_SECRET", ""))
+	for _, t := range strings.Split(envOr("PICPIER_TOKENS", ""), ",") {
 		if t = strings.TrimSpace(t); t != "" {
 			cfg.tokens = append(cfg.tokens, t)
 		}
@@ -202,13 +215,13 @@ func main() {
 	cfg.baseURL = strings.TrimRight(cfg.baseURL, "/")
 
 	if cfg.imagesDir == "" || cfg.baseURL == "" {
-		log.Fatal("必须指定图片目录（-images / PICNOOK_IMAGES）和网址（-base / PICNOOK_BASE）")
+		log.Fatal("必须指定图片目录（-images / PICPIER_IMAGES）和网址（-base / PICPIER_BASE）")
 	}
 	if len(cfg.password) < 8 {
-		log.Fatal("环境变量 PICNOOK_PASSWORD 至少 8 位")
+		log.Fatal("环境变量 PICPIER_PASSWORD 至少 8 位")
 	}
 	if len(cfg.secret) < 32 {
-		log.Fatal("环境变量 PICNOOK_SECRET 至少 32 个字符")
+		log.Fatal("环境变量 PICPIER_SECRET 至少 32 个字符")
 	}
 	u, err := url.Parse(cfg.baseURL)
 	if err != nil || u.Host == "" {
@@ -229,7 +242,14 @@ func main() {
 		cfg.trashDir = filepath.Join(filepath.Dir(cfg.imagesDir), "i-trash")
 	}
 	if cfg.configDir == "" {
-		cfg.configDir = filepath.Join(filepath.Dir(cfg.imagesDir), "picnook-config")
+		cfg.configDir = filepath.Join(filepath.Dir(cfg.imagesDir), "picpier-config")
+		// 项目曾叫 PicNook：新目录不存在而旧目录存在时继续沿用旧目录
+		legacy := filepath.Join(filepath.Dir(cfg.imagesDir), "picnook-config")
+		if _, err := os.Stat(cfg.configDir); os.IsNotExist(err) {
+			if st, err := os.Stat(legacy); err == nil && st.IsDir() {
+				cfg.configDir = legacy
+			}
+		}
 	}
 	if err := os.MkdirAll(cfg.configDir, 0o700); err != nil {
 		log.Fatalf("创建配置目录失败：%v", err)
@@ -248,12 +268,12 @@ func main() {
 		log.Fatalf("读取配置失败：%v", err)
 	}
 	if !first && len(cfg.tokens) > 0 {
-		log.Printf("提示：配置已存在，PICNOOK_TOKENS 只在首次启动时导入，请在后台管理 token")
+		log.Printf("提示：配置已存在，PICPIER_TOKENS 只在首次启动时导入，请在后台管理 token")
 	}
 
 	a := &app{
 		cfg:     cfg,
-		tmpl:    template.Must(template.New("").Funcs(templateFuncs).ParseFS(templateFS, "templates/*.html")),
+		tmpl:    buildTemplates(),
 		limiter: newLoginLimiter(),
 		secure:  u.Scheme == "https",
 		store:   store,
@@ -268,7 +288,7 @@ func main() {
 		WriteTimeout:      5 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
-	log.Printf("picnook 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
+	log.Printf("picpier 监听 %s，图片目录 %s，配置目录 %s", cfg.listen, cfg.imagesDir, cfg.configDir)
 	for _, e := range cfg.extraDirs {
 		log.Printf("旧图片目录（只读）：/%s/ -> %s", e.prefix, e.dir)
 	}
@@ -336,9 +356,9 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func (a *app) render(w http.ResponseWriter, status int, name string, data interface{}) {
+func (a *app) render(w http.ResponseWriter, r *http.Request, status int, name string, data interface{}) {
 	var buf bytes.Buffer
-	if err := a.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+	if err := a.tmpl[langOf(r)].ExecuteTemplate(&buf, name, data); err != nil {
 		log.Printf("渲染 %s 失败：%v", name, err)
 		http.Error(w, "页面渲染失败", http.StatusInternalServerError)
 		return
@@ -355,7 +375,7 @@ func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s := a.store.get()
-	a.render(w, http.StatusOK, "index.html", map[string]interface{}{
+	a.render(w, r, http.StatusOK, "index.html", map[string]interface{}{
 		"MaxMB":     s.MaxMB,
 		"Compress":  s.Compress,
 		"WebP":      s.Convert == "webp",

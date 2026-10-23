@@ -1,21 +1,21 @@
-# 放到 /etc/systemd/system/picnook.service
+# 放到 /etc/systemd/system/picpier.service
 #
 # 下面的路径是宿主机上的真实路径（1Panel 默认在 /opt/1panel/apps/openresty/openresty/www/sites/...），
 # 改成原站点根目录。User 要和 i 目录的属主一致，可用 stat -c %U <站点根目录>/i 查看。
 
 [Unit]
-Description=PicNook image host
+Description=PicPier image host
 After=network.target
 
 [Service]
 User=www-data
 Group=www-data
-EnvironmentFile=/etc/picnook.env
-ExecStart=/usr/local/bin/picnook \
+EnvironmentFile=/etc/picpier.env
+ExecStart=/usr/local/bin/picpier \
     -listen 127.0.0.1:18321 \
     -images /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i \
     -trash  /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash \
-    -config-dir /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/picnook-config
+    -config-dir /opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/picpier-config
 Restart=on-failure
 RestartSec=3
 
@@ -31,7 +31,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i
 ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/i-trash
-ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/picnook-config
+ReadWritePaths=/opt/1panel/apps/openresty/openresty/www/sites/img.example.com/index/picpier-config
 
 [Install]
 WantedBy=multi-user.target

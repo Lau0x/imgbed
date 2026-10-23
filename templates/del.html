@@ -8,22 +8,23 @@
 .del .url{font:12.5px/1.5 var(--mono);color:var(--muted);word-break:break-all;margin-bottom:18px}
 .del .brand{justify-content:center;margin:0 0 18px}
 </style>
+<div class="prefs-float">{{template "prefs"}}</div>
 <main class="del">
   <div class="rise" style="width:100%;max-width:460px">
-    <div class="brand">{{template "brandmark"}}<span>Pic<em>Nook</em></span></div>
+    <div class="brand">{{template "brandmark"}}<span>Pic<em>Pier</em></span></div>
     <div class="card">
       {{if .Msg}}
         <h1>{{.Msg}}</h1>
-        <p class="muted">可以关闭这个页面了。</p>
+        <p class="muted">{{t "可以关闭这个页面了。"}}</p>
       {{else}}
-        <h1>删除这张图片？</h1>
-        <p class="muted">删除后，所有贴出去的链接都会失效。</p>
+        <h1>{{t "删除这张图片？"}}</h1>
+        <p class="muted">{{t "删除后，所有贴出去的链接都会失效。"}}</p>
         <div class="pic"><img src="{{.URL}}" alt=""></div>
         <div class="url">{{.URL}}</div>
         <form method="post" action="/del">
           <input type="hidden" name="f" value="{{.F}}">
           <input type="hidden" name="s" value="{{.S}}">
-          <button class="btn btn-danger" type="submit" style="width:100%;padding:11px">确认删除</button>
+          <button class="btn btn-danger" type="submit" style="width:100%;padding:11px">{{t "确认删除"}}</button>
         </form>
       {{end}}
     </div>

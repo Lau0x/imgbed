@@ -156,9 +156,16 @@ func (a *app) saveImage(fh *multipart.FileHeader) (string, int64, error) {
 }
 
 func (a *app) receive(w http.ResponseWriter, r *http.Request, viaAPI bool) {
+	// 网页上传的提示按界面语言返回；API 保持中文，和 EasyImage 一致
+	msg := func(s string) string {
+		if viaAPI {
+			return s
+		}
+		return a.T(r, s)
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, a.maxBytes()+(1<<20))
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
-		writeJSON(w, failed(400, "请求无效或文件超过大小限制"))
+		writeJSON(w, failed(400, msg("请求无效或文件超过大小限制")))
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
@@ -178,17 +185,17 @@ func (a *app) receive(w http.ResponseWriter, r *http.Request, viaAPI bool) {
 
 	files := r.MultipartForm.File["image"]
 	if len(files) == 0 {
-		writeJSON(w, failed(204, "没有选择上传的文件"))
+		writeJSON(w, failed(204, msg("没有选择上传的文件")))
 		return
 	}
 	fh := files[0]
 	rel, size, err := a.saveImage(fh)
 	if err != nil {
 		if errors.Is(err, errTooLarge) || errors.Is(err, errNotImage) {
-			writeJSON(w, failed(400, err.Error()))
+			writeJSON(w, failed(400, msg(err.Error())))
 		} else {
 			log.Printf("保存图片失败：%v", err)
-			writeJSON(w, failed(500, "保存失败"))
+			writeJSON(w, failed(500, msg("保存失败")))
 		}
 		return
 	}
@@ -223,7 +230,7 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !a.loggedIn(r) || !sameOrigin(r) {
-		writeJSON(w, failed(401, "未登录或登录已过期"))
+		writeJSON(w, failed(401, a.T(r, "未登录或登录已过期")))
 		return
 	}
 	a.receive(w, r, false)

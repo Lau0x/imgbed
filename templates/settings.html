@@ -78,93 +78,93 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
   <div class="page-head rise">
     <div>
       <span class="eyebrow">Settings</span>
-      <h1>设置</h1>
-      <div class="sub">修改后立即生效，保存在配置目录的 settings.json 里</div>
+      <h1>{{t "设置"}}</h1>
+      <div class="sub">{{t "修改后立即生效，保存在配置目录的 settings.json 里"}}</div>
     </div>
   </div>
   {{with .Msg}}<div class="notice rise">{{.}}</div>{{end}}
   <div class="layout">
     <nav class="toc card rise rise-1" id="toc">
-      <a href="#upload">上传</a>
-      <a href="#process">压缩与格式</a>
-      <a href="#watermark">水印</a>
-      <a href="#hotlink">防盗链</a>
+      <a href="#upload">{{t "上传"}}</a>
+      <a href="#process">{{t "压缩与格式"}}</a>
+      <a href="#watermark">{{t "水印"}}</a>
+      <a href="#hotlink">{{t "防盗链"}}</a>
       <a href="#tokens">API Token</a>
-      <a href="#account">账户安全</a>
+      <a href="#account">{{t "账户安全"}}</a>
     </nav>
     <div>
       <form method="post" action="/admin/settings" id="settings-form">
         <input type="hidden" name="anchor" value="upload">
 
         <section class="card rise rise-2" id="upload">
-          <div class="sec-head"><div><h2>上传</h2><p class="desc">网页上传和 API 上传共用这些限制</p></div></div>
+          <div class="sec-head"><div><h2>{{t "上传"}}</h2><p class="desc">{{t "网页上传和 API 上传共用这些限制"}}</p></div></div>
           <div class="rows">
             <div class="row">
-              <label class="lbl" for="max_mb">单张大小上限</label>
+              <label class="lbl" for="max_mb">{{t "单张大小上限"}}</label>
               <div>
                 <div class="inline"><input type="number" id="max_mb" name="max_mb" min="1" max="500" value="{{.S.MaxMB}}"><span class="unit">MB</span></div>
-                <div class="help">调大后，反向代理的 <code>client_max_body_size</code> 也要跟着调大，否则大图会被拦在代理那一层。</div>
+                <div class="help">{{t "调大后，反向代理的"}} <code>client_max_body_size</code> {{t "也要跟着调大，否则大图会被拦在代理那一层。"}}</div>
               </div>
             </div>
           </div>
-          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="upload">保存</button></div>
+          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="upload">{{t "保存"}}</button></div>
         </section>
 
         <section class="card rise rise-3" id="process">
-          <div class="sec-head"><div><h2>压缩与格式</h2><p class="desc">只处理新上传的图片。动图和超过 4000 万像素的图片原样保存，处理后反而变大时也保留原图。</p></div></div>
+          <div class="sec-head"><div><h2>{{t "压缩与格式"}}</h2><p class="desc">{{t "只处理新上传的图片。动图和超过 4000 万像素的图片原样保存，处理后反而变大时也保留原图。"}}</p></div></div>
           <div class="rows">
             <div class="row">
-              <div class="lbl">压缩</div>
-              <div><label class="switch"><input type="checkbox" name="compress"{{if .S.Compress}} checked{{end}}> 上传时压缩图片</label></div>
+              <div class="lbl">{{t "压缩"}}</div>
+              <div><label class="switch"><input type="checkbox" name="compress"{{if .S.Compress}} checked{{end}}> {{t "上传时压缩图片"}}</label></div>
             </div>
             <div class="row">
-              <label class="lbl" for="quality">压缩质量<small>推荐 80–90</small></label>
+              <label class="lbl" for="quality">{{t "压缩质量"}}<small>{{t "推荐 80–90"}}</small></label>
               <div>
                 <div class="inline"><input type="range" id="quality" name="quality" min="40" max="100" value="{{.S.Quality}}" oninput="this.nextElementSibling.textContent=this.value"><output class="mono">{{.S.Quality}}</output></div>
-                <div class="help">80–90 肉眼基本看不出差别，体积通常能减少一半左右。数值越高画质越好、文件越大。</div>
+                <div class="help">{{t "80–90 肉眼基本看不出差别，体积通常能减少一半左右。数值越高画质越好、文件越大。"}}</div>
               </div>
             </div>
             <div class="row">
-              <label class="lbl" for="convert">转换格式</label>
+              <label class="lbl" for="convert">{{t "转换格式"}}</label>
               <div>
                 <select id="convert" name="convert" style="max-width:240px">
-                  <option value=""{{if eq .S.Convert ""}} selected{{end}}>保持原格式</option>
-                  <option value="webp"{{if eq .S.Convert "webp"}} selected{{end}}>转为 WebP</option>
+                  <option value=""{{if eq .S.Convert ""}} selected{{end}}>{{t "保持原格式"}}</option>
+                  <option value="webp"{{if eq .S.Convert "webp"}} selected{{end}}>{{t "转为 WebP"}}</option>
                 </select>
-                <div class="help">WebP 比 JPG / PNG 小很多，主流浏览器都支持，转换后链接扩展名会变成 .webp。没开压缩时按质量 92 转换。重新编码会去掉照片的 EXIF 信息（包括拍摄地点），方向会先按 EXIF 转正。</div>
+                <div class="help">{{t "WebP 比 JPG / PNG 小很多，主流浏览器都支持，转换后链接扩展名会变成 .webp。没开压缩时按质量 92 转换。重新编码会去掉照片的 EXIF 信息（包括拍摄地点），方向会先按 EXIF 转正。"}}</div>
               </div>
             </div>
           </div>
-          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="process">保存</button></div>
+          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="process">{{t "保存"}}</button></div>
         </section>
 
         <section class="card rise rise-4" id="watermark">
-          <div class="sec-head"><div><h2>水印</h2><p class="desc">给新上传的图片加文字水印，不足 100 像素的小图不加</p></div></div>
+          <div class="sec-head"><div><h2>{{t "水印"}}</h2><p class="desc">{{t "给新上传的图片加文字水印，不足 100 像素的小图不加"}}</p></div></div>
           <div class="wm">
             <div class="rows">
               <div class="row">
-                <div class="lbl">文字水印</div>
-                <div><label class="switch"><input type="checkbox" name="watermark"{{if .S.Watermark}} checked{{end}}> 开启</label></div>
+                <div class="lbl">{{t "文字水印"}}</div>
+                <div><label class="switch"><input type="checkbox" name="watermark"{{if .S.Watermark}} checked{{end}}> {{t "开启"}}</label></div>
               </div>
               <div class="row">
-                <label class="lbl" for="water_text">水印文字</label>
+                <label class="lbl" for="water_text">{{t "水印文字"}}</label>
                 <div>
                   <input type="text" id="water_text" name="water_text" maxlength="60" value="{{.S.WaterText}}">
-                  {{with .Missing}}<div class="warn-text" style="margin-top:6px">当前字体不包含这些字符：{{.}}，加水印时会显示成方框。可以换成常用字，或者在下面的"水印字体"里上传包含这些字的完整字体。</div>{{end}}
+                  {{with .Missing}}<div class="warn-text" style="margin-top:6px">{{t "当前字体不包含这些字符：%s，加水印时会显示成方框。可以换成常用字，或者在下面的\"水印字体\"里上传包含这些字的完整字体。" .}}</div>{{end}}
                 </div>
               </div>
               <div class="row">
-                <div class="lbl">位置</div>
-                <div class="pos" role="radiogroup" aria-label="水印位置">
-                  {{range .Positions}}<label title="{{.L}}"><input type="radio" name="water_pos" value="{{.V}}"{{if eq .V $.S.WaterPos}} checked{{end}} aria-label="{{.L}}"><span></span></label>{{end}}
+                <div class="lbl">{{t "位置"}}</div>
+                <div class="pos" role="radiogroup" aria-label="{{t "水印位置"}}">
+                  {{range .Positions}}<label title="{{t .L}}"><input type="radio" name="water_pos" value="{{.V}}"{{if eq .V $.S.WaterPos}} checked{{end}} aria-label="{{t .L}}"><span></span></label>{{end}}
                 </div>
               </div>
               <div class="row">
-                <label class="lbl" for="water_size">字号<small>占图片短边的比例</small></label>
+                <label class="lbl" for="water_size">{{t "字号"}}<small>{{t "占图片短边的比例"}}</small></label>
                 <div class="inline"><input type="range" id="water_size" name="water_size" min="1" max="20" value="{{.S.WaterSize}}" oninput="this.nextElementSibling.textContent=this.value+'%'"><output class="mono">{{.S.WaterSize}}%</output></div>
               </div>
               <div class="row">
-                <label class="lbl" for="water_color">颜色与不透明度</label>
+                <label class="lbl" for="water_color">{{t "颜色与不透明度"}}</label>
                 <div class="inline">
                   <input type="color" id="water_color" name="water_color" value="{{.S.WaterColor}}">
                   <input type="range" id="water_opacity" name="water_opacity" min="0" max="100" value="{{.S.WaterOpacity}}" oninput="this.nextElementSibling.textContent=this.value+'%'"><output class="mono">{{.S.WaterOpacity}}%</output>
@@ -172,143 +172,143 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
               </div>
             </div>
             <div class="preview">
-              <img src="/admin/settings/preview?t={{.Now}}" alt="水印预览" width="800" height="450">
-              <div class="muted">预览按已保存的设置生成，修改后先保存再看</div>
+              <img src="/admin/settings/preview?t={{.Now}}" alt="{{t "水印预览"}}" width="800" height="450">
+              <div class="muted">{{t "预览按已保存的设置生成，修改后先保存再看"}}</div>
             </div>
           </div>
-          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="watermark">保存</button></div>
+          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="watermark">{{t "保存"}}</button></div>
         </section>
 
         <section class="card rise rise-5" id="hotlink">
-          <div class="sec-head"><div><h2>防盗链</h2><p class="desc">只允许本站和白名单里的网站显示图片，其他网站引用会返回 403</p></div></div>
+          <div class="sec-head"><div><h2>{{t "防盗链"}}</h2><p class="desc">{{t "只允许本站和白名单里的网站显示图片，其他网站引用会返回 403"}}</p></div></div>
           <div class="rows">
             <div class="row">
-              <div class="lbl">防盗链</div>
-              <div><label class="switch"><input type="checkbox" name="hotlink"{{if .S.Hotlink}} checked{{end}}> 开启</label></div>
+              <div class="lbl">{{t "防盗链"}}</div>
+              <div><label class="switch"><input type="checkbox" name="hotlink"{{if .S.Hotlink}} checked{{end}}> {{t "开启"}}</label></div>
             </div>
             <div class="row">
-              <label class="lbl" for="allowed_referers">允许的网站<small>每行一个域名</small></label>
+              <label class="lbl" for="allowed_referers">{{t "允许的网站"}}<small>{{t "每行一个域名"}}</small></label>
               <div>
                 <textarea id="allowed_referers" name="allowed_referers" placeholder="blog.example.com&#10;*.example.com">{{.Refs}}</textarea>
-                <div class="help">本站已默认放行。<code>*.example.com</code> 表示 example.com 及其所有子域名。</div>
+                <div class="help">{{t "本站已默认放行。"}}<code>*.example.com</code> {{t "表示 example.com 及其所有子域名。"}}</div>
               </div>
             </div>
             <div class="row">
-              <div class="lbl">直接访问</div>
+              <div class="lbl">{{t "直接访问"}}</div>
               <div>
-                <label class="switch"><input type="checkbox" name="allow_empty_referer"{{if .S.AllowEmptyRef}} checked{{end}}> 允许没有来源的访问</label>
-                <div class="help">在浏览器地址栏直接打开、Typora / Obsidian 等本地编辑器和部分 App 都不带来源，关掉后它们会显示不了图片。</div>
+                <label class="switch"><input type="checkbox" name="allow_empty_referer"{{if .S.AllowEmptyRef}} checked{{end}}> {{t "允许没有来源的访问"}}</label>
+                <div class="help">{{t "在浏览器地址栏直接打开、Typora / Obsidian 等本地编辑器和部分 App 都不带来源，关掉后它们会显示不了图片。"}}</div>
               </div>
             </div>
           </div>
           <div class="notice" style="margin:16px 0 0;display:block">
-            <strong>需要改反向代理吗？</strong>
+            <strong>{{t "需要改反向代理吗？"}}</strong>
             <ul style="margin:6px 0 0;padding-left:18px">
-              <li>反向代理把所有请求都转给 PicNook（例如 Nginx Proxy Manager 的默认用法）：<b>不需要任何修改</b>，开启即生效。</li>
-              <li>让 Nginx 直接读取 /i/ 下的图片文件返回：请求到不了 PicNook，这里的设置不会生效，需要把 /i/ 也转给 PicNook，见 README 的"防盗链"一节。</li>
-              <li>反向代理或 CDN 开了图片缓存（例如 Nginx Proxy Manager 的 Cache Assets）：请关掉，否则缓存会绕过防盗链。</li>
+              <li>{{t "反向代理把所有请求都转给 PicPier（例如 Nginx Proxy Manager 的默认用法）："}}<b>{{t "不需要任何修改"}}</b>{{t "，开启即生效。"}}</li>
+              <li>{{t "让 Nginx 直接读取 /i/ 下的图片文件返回：请求到不了 PicPier，这里的设置不会生效，需要把 /i/ 也转给 PicPier，见 README 的\"防盗链\"一节。"}}</li>
+              <li>{{t "反向代理或 CDN 开了图片缓存（例如 Nginx Proxy Manager 的 Cache Assets）：请关掉，否则缓存会绕过防盗链。"}}</li>
             </ul>
-            <div class="muted" style="margin-top:6px">开启前，记得把会引用图片的网站加进白名单，例如公众号排版工具、自己的博客。</div>
+            <div class="muted" style="margin-top:6px">{{t "开启前，记得把会引用图片的网站加进白名单，例如公众号排版工具、自己的博客。"}}</div>
           </div>
-          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="hotlink">保存</button></div>
+          <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="hotlink">{{t "保存"}}</button></div>
         </section>
       </form>
 
       <section class="card" id="watermark-font">
-        <div class="sec-head"><div><h2>水印字体</h2><p class="desc">内置思源黑体粗体，包含 6763 个常用汉字和中英文符号。想换字体、或者要用生僻字时，可以上传自己的字体，支持 ttf / otf / ttc</p></div></div>
+        <div class="sec-head"><div><h2>{{t "水印字体"}}</h2><p class="desc">{{t "内置思源黑体粗体，包含 6763 个常用汉字和中英文符号。想换字体、或者要用生僻字时，可以上传自己的字体，支持 ttf / otf / ttc"}}</p></div></div>
         <div class="font-now">
-          {{if .CustomFont}}<span class="badge badge-ok">已上传自定义字体</span>{{else}}<span class="badge badge-ok">内置思源黑体 · 常用 6763 字</span>{{end}}
+          {{if .CustomFont}}<span class="badge badge-ok">{{t "已上传自定义字体"}}</span>{{else}}<span class="badge badge-ok">{{t "内置思源黑体 · 常用 6763 字"}}</span>{{end}}
           {{if .CustomFont}}
           <form method="post" action="/admin/font" enctype="multipart/form-data" style="margin:0">
             <input type="hidden" name="action" value="delete">
-            <button type="submit" class="link-btn">恢复内置字体</button>
+            <button type="submit" class="link-btn">{{t "恢复内置字体"}}</button>
           </form>
           {{end}}
         </div>
         <form method="post" action="/admin/font" enctype="multipart/form-data" class="filebox" style="margin-top:14px">
           <input type="file" name="font" accept=".ttf,.otf,.ttc" required>
-          <button type="submit" class="btn btn-sm">上传字体</button>
+          <button type="submit" class="btn btn-sm">{{t "上传字体"}}</button>
         </form>
       </section>
 
       <section class="card" id="tokens">
-        <div class="sec-head"><div><h2>API Token</h2><p class="desc">PicGo 等工具通过 API 上传时使用，用法和 EasyImage 相同</p></div></div>
+        <div class="sec-head"><div><h2>API Token</h2><p class="desc">{{t "PicGo 等工具通过 API 上传时使用，用法和 EasyImage 相同"}}</p></div></div>
         <div class="api">
-          <span class="muted" style="font-size:13px">API 地址</span>
+          <span class="muted" style="font-size:13px">{{t "API 地址"}}</span>
           <code>{{.APIURL}}</code>
-          <button type="button" class="btn btn-sm btn-ghost" data-copy="{{.APIURL}}" data-copy-msg="已复制 API 地址">复制</button>
-          <span class="muted" style="margin-left:auto">POST · 字段 <code>image</code> + <code>token</code></span>
+          <button type="button" class="btn btn-sm btn-ghost" data-copy="{{.APIURL}}" data-copy-msg="{{t "已复制 API 地址"}}">{{t "复制"}}</button>
+          <span class="muted" style="margin-left:auto">{{t "POST · 字段"}} <code>image</code> + <code>token</code></span>
         </div>
 
         <form method="get" action="/admin/settings#tokens" class="search">
-          <input type="search" name="q" value="{{.Q}}" placeholder="搜索 Token、备注或 ID">
-          <button type="submit" class="btn">搜索</button>
-          {{if .Q}}<a class="btn btn-ghost" href="/admin/settings#tokens">清除</a>{{end}}
+          <input type="search" name="q" value="{{.Q}}" placeholder="{{t "搜索 Token、备注或 ID"}}">
+          <button type="submit" class="btn">{{t "搜索"}}</button>
+          {{if .Q}}<a class="btn btn-ghost" href="/admin/settings#tokens">{{t "清除"}}</a>{{end}}
         </form>
 
         <div class="tablewrap">
         <table>
-          <thead><tr><th>ID</th><th>Token</th><th>备注</th><th>添加时间</th><th>有效期至</th><th>状态</th><th>上传</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Token</th><th>{{t "备注"}}</th><th>{{t "添加时间"}}</th><th>{{t "有效期至"}}</th><th>{{t "状态"}}</th><th>{{t "上传"}}</th><th></th></tr></thead>
           <tbody>
           {{range .Tokens}}
             <tr>
               <td class="id">{{.ID}}</td>
-              <td><span class="tok">{{mask .Value}}<button type="button" data-copy="{{.Value}}" data-copy-msg="已复制 Token">复制</button></span></td>
+              <td><span class="tok">{{mask .Value}}<button type="button" data-copy="{{.Value}}" data-copy-msg="{{t "已复制 Token"}}">{{t "复制"}}</button></span></td>
               <td>{{.Note}}</td>
               <td class="date" title="{{date .Created}}">{{day .Created}}</td>
-              <td class="date"{{if ne .Expires 0}} title="{{date .Expires}}"{{end}}>{{if eq .Expires 0}}永久{{else}}{{day .Expires}}{{end}}</td>
-              <td>{{if eq .Status "已过期"}}<span class="badge badge-bad">已过期</span>{{else if eq .Status "已禁用"}}<span class="badge badge-warn">已禁用</span>{{else}}<span class="badge badge-ok">正常</span>{{end}}</td>
+              <td class="date"{{if ne .Expires 0}} title="{{date .Expires}}"{{end}}>{{if eq .Expires 0}}{{t "永久"}}{{else}}{{day .Expires}}{{end}}</td>
+              <td>{{if eq .Status "已过期"}}<span class="badge badge-bad">{{t "已过期"}}</span>{{else if eq .Status "已禁用"}}<span class="badge badge-warn">{{t "已禁用"}}</span>{{else}}<span class="badge badge-ok">{{t "正常"}}</span>{{end}}</td>
               <td>{{.Uploads}}</td>
               <td>
                 <div class="ops">
-                  <a class="btn btn-sm" href="/admin/tokens/files?t={{.Value}}">文件</a>
+                  <a class="btn btn-sm" href="/admin/tokens/files?t={{.Value}}">{{t "文件"}}</a>
                   <form method="post" action="/admin/tokens"><input type="hidden" name="value" value="{{.Value}}">
-                    {{if .Disabled}}<button class="btn btn-sm" name="action" value="enable" type="submit">启用</button>{{else}}<button class="btn btn-sm" name="action" value="disable" type="submit">禁用</button>{{end}}</form>
-                  <form method="post" action="/admin/tokens" onsubmit="return confirm('删除这个 Token？用它的上传工具会立刻失效，已上传的图片保留。')"><input type="hidden" name="value" value="{{.Value}}">
-                    <button class="btn btn-sm btn-danger" name="action" value="delete" type="submit">删除</button></form>
-                  <form method="post" action="/admin/tokens" onsubmit="return confirm('删除这个 Token 上传的全部 {{.Uploads}} 张图片？图片会移到回收目录，已贴出去的链接会失效。')"><input type="hidden" name="value" value="{{.Value}}">
-                    <button class="btn btn-sm btn-danger" name="action" value="purge" type="submit"{{if eq .Uploads 0}} disabled{{end}}>删除上传</button></form>
+                    {{if .Disabled}}<button class="btn btn-sm" name="action" value="enable" type="submit">{{t "启用"}}</button>{{else}}<button class="btn btn-sm" name="action" value="disable" type="submit">{{t "禁用"}}</button>{{end}}</form>
+                  <form method="post" action="/admin/tokens" onsubmit="return confirm({{t "删除这个 Token？用它的上传工具会立刻失效，已上传的图片保留。"}})"><input type="hidden" name="value" value="{{.Value}}">
+                    <button class="btn btn-sm btn-danger" name="action" value="delete" type="submit">{{t "删除"}}</button></form>
+                  <form method="post" action="/admin/tokens" onsubmit="return confirm({{t "删除这个 Token 上传的全部 %d 张图片？图片会移到回收目录，已贴出去的链接会失效。" .Uploads}})"><input type="hidden" name="value" value="{{.Value}}">
+                    <button class="btn btn-sm btn-danger" name="action" value="purge" type="submit"{{if eq .Uploads 0}} disabled{{end}}>{{t "删除上传"}}</button></form>
                 </div>
               </td>
             </tr>
           {{else}}
-            <tr><td colspan="8" class="muted" style="text-align:center;padding:28px">{{if .Q}}没有匹配的 Token{{else}}还没有 Token，API 上传处于关闭状态{{end}}</td></tr>
+            <tr><td colspan="8" class="muted" style="text-align:center;padding:28px">{{if .Q}}{{t "没有匹配的 Token"}}{{else}}{{t "还没有 Token，API 上传处于关闭状态"}}{{end}}</td></tr>
           {{end}}
           </tbody>
         </table>
         </div>
-        <p class="muted" style="margin:10px 0 0">共 {{.TokenTotal}} 个。上传数量只统计 PicNook 上线后的上传。</p>
+        <p class="muted" style="margin:10px 0 0">{{t "共 %d 个。上传数量只统计 PicPier 上线后的上传。" .TokenTotal}}</p>
 
-        <h3 class="sub-h">增加 / 修改 Token</h3>
+        <h3 class="sub-h">{{t "增加 / 修改 Token"}}</h3>
         <form method="post" action="/admin/tokens" class="addtok">
           <input type="hidden" name="action" value="add">
-          <input type="text" class="input-mono" name="value" value="{{.NewToken}}" required pattern="[A-Za-z0-9]{16,64}" title="16–64 位字母或数字" aria-label="Token">
-          <input type="text" name="note" placeholder="备注（可选，例如 PicGo）" aria-label="备注">
-          <label class="inline"><input type="number" name="days" min="0" max="36500" value="0" style="width:84px" aria-label="有效期天数"><span class="unit">天</span></label>
-          <button class="btn btn-primary" type="submit">添加</button>
+          <input type="text" class="input-mono" name="value" value="{{.NewToken}}" required pattern="[A-Za-z0-9]{16,64}" title="{{t "16–64 位字母或数字"}}" aria-label="Token">
+          <input type="text" name="note" placeholder="{{t "备注（可选，例如 PicGo）"}}" aria-label="{{t "备注"}}">
+          <label class="inline"><input type="number" name="days" min="0" max="36500" value="0" style="width:84px" aria-label="{{t "有效期天数"}}"><span class="unit">{{t "天"}}</span></label>
+          <button class="btn btn-primary" type="submit">{{t "添加"}}</button>
         </form>
-        <p class="muted" style="margin:8px 0 0">有效期填 0 表示永久。填写已有的 Token 则修改它的有效期，并重新启用。</p>
+        <p class="muted" style="margin:8px 0 0">{{t "有效期填 0 表示永久。填写已有的 Token 则修改它的有效期，并重新启用。"}}</p>
 
-        <h3 class="sub-h">从 EasyImage 导入</h3>
+        <h3 class="sub-h">{{t "从 EasyImage 导入"}}</h3>
         <form method="post" action="/admin/tokens/import">
-          <textarea name="php" class="input-mono" placeholder="粘贴原站点 config/api_key.php 的全部内容，会保留原来的 ID、添加时间和有效期"></textarea>
-          <div style="margin-top:10px"><button type="submit" class="btn">导入</button></div>
+          <textarea name="php" class="input-mono" placeholder="{{t "粘贴原站点 config/api_key.php 的全部内容，会保留原来的 ID、添加时间和有效期"}}"></textarea>
+          <div style="margin-top:10px"><button type="submit" class="btn">{{t "导入"}}</button></div>
         </form>
       </section>
 
       <section class="card" id="account">
-        <div class="sec-head"><div><h2>账户安全</h2><p class="desc">修改后台登录密码。改完后，其他设备上的登录会失效，需要用新密码重新登录</p></div></div>
+        <div class="sec-head"><div><h2>{{t "账户安全"}}</h2><p class="desc">{{t "修改后台登录密码。改完后，其他设备上的登录会失效，需要用新密码重新登录"}}</p></div></div>
         <div class="pwnote">
-          {{if .EnvPassword}}<span class="badge">当前使用 .env 里的 PICNOOK_PASSWORD</span>{{else}}<span class="badge badge-ok">当前使用后台设置的密码</span>{{end}}
+          {{if .EnvPassword}}<span class="badge">{{t "当前使用 .env 里的 PICPIER_PASSWORD"}}</span>{{else}}<span class="badge badge-ok">{{t "当前使用后台设置的密码"}}</span>{{end}}
         </div>
         <form method="post" action="/admin/password" class="pwform" autocomplete="off">
           <input type="text" name="username" value="admin" autocomplete="username" hidden>
-          <label>当前密码<input type="password" name="current" autocomplete="current-password" required></label>
-          <label>新密码<input type="password" name="new" minlength="8" maxlength="128" autocomplete="new-password" required></label>
-          <label>再输入一次新密码<input type="password" name="confirm" minlength="8" maxlength="128" autocomplete="new-password" required></label>
-          <div><button class="btn btn-primary" type="submit">修改密码</button></div>
+          <label>{{t "当前密码"}}<input type="password" name="current" autocomplete="current-password" required></label>
+          <label>{{t "新密码"}}<input type="password" name="new" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+          <label>{{t "再输入一次新密码"}}<input type="password" name="confirm" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+          <div><button class="btn btn-primary" type="submit">{{t "修改密码"}}</button></div>
         </form>
-        <p class="muted" style="margin:14px 0 0">新密码加盐哈希后保存在配置目录的 settings.json 里，会覆盖 .env 里的密码。忘记新密码时，在服务器上执行 <code>docker compose exec picnook /picnook reset-password</code> 再重启，就能重新用 .env 里的密码登录。</p>
+        <p class="muted" style="margin:14px 0 0">{{t "新密码加盐哈希后保存在配置目录的 settings.json 里，会覆盖 .env 里的密码。忘记新密码时，在服务器上执行"}} <code>docker compose exec picpier /picpier reset-password</code> {{t "再重启，就能重新用 .env 里的密码登录。"}}</p>
       </section>
     </div>
   </div>

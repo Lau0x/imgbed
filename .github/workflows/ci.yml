@@ -66,9 +66,9 @@ jobs:
           go-version: "1.26"
       - run: |
           for arch in amd64 arm64; do
-            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -tags nodynamic -trimpath -ldflags="-s -w" -o dist/picnook-linux-$arch .
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -tags nodynamic -trimpath -ldflags="-s -w" -o dist/picpier-linux-$arch .
           done
-          (cd dist && sha256sum picnook-linux-* > SHA256SUMS)
+          (cd dist && sha256sum picpier-linux-* > SHA256SUMS)
       - run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

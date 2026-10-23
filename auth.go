@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	sessionCookie = "picnook_session"
+	sessionCookie = "picpier_session"
 	sessionTTL    = 7 * 24 * time.Hour
 	maxFails      = 5
 	failWindow    = 15 * time.Minute
@@ -69,7 +69,7 @@ func (a *app) loggedIn(r *http.Request) bool {
 	return err == nil && time.Now().Unix() < n
 }
 
-// checkPassword 优先使用后台改过的密码（加盐哈希），没改过时用 PICNOOK_PASSWORD
+// checkPassword 优先使用后台改过的密码（加盐哈希），没改过时用 PICPIER_PASSWORD
 func (a *app) checkPassword(pw string) bool {
 	if h := a.store.get().PasswordHash; h != "" {
 		return verifyPassword(h, pw)
@@ -219,24 +219,24 @@ func (a *app) handleLogin(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, next, http.StatusSeeOther)
 			return
 		}
-		a.render(w, http.StatusOK, "login.html", map[string]string{"Next": next})
+		a.render(w, r, http.StatusOK, "login.html", map[string]string{"Next": next})
 	case http.MethodPost:
 		ip := a.clientIP(r)
 		data := map[string]string{"Next": next}
 		if !sameOrigin(r) {
-			data["Error"] = "请求来源无效，请刷新页面重试"
-			a.render(w, http.StatusForbidden, "login.html", data)
+			data["Error"] = a.T(r, "请求来源无效，请刷新页面重试")
+			a.render(w, r, http.StatusForbidden, "login.html", data)
 			return
 		}
 		if a.limiter.blocked(ip) {
-			data["Error"] = "失败次数过多，请 15 分钟后再试"
-			a.render(w, http.StatusTooManyRequests, "login.html", data)
+			data["Error"] = a.T(r, "失败次数过多，请 15 分钟后再试")
+			a.render(w, r, http.StatusTooManyRequests, "login.html", data)
 			return
 		}
 		if !a.checkPassword(r.PostFormValue("password")) {
 			a.limiter.fail(ip)
-			data["Error"] = "密码错误"
-			a.render(w, http.StatusUnauthorized, "login.html", data)
+			data["Error"] = a.T(r, "密码错误")
+			a.render(w, r, http.StatusUnauthorized, "login.html", data)
 			return
 		}
 		a.limiter.reset(ip)

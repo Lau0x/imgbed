@@ -110,32 +110,32 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   <div class="lib-head rise">
     <div>
       <span class="eyebrow">Library</span>
-      <h1>{{if .Title}}{{.Title}}{{else if .Day}}{{dayLabel .Day}}{{else}}图片{{end}}</h1>
+      <h1>{{if .Title}}{{.Title}}{{else if .Day}}{{dayLabel .Day}}{{else}}{{t "图片"}}{{end}}</h1>
       <div class="stats">
-        <span class="stat"><b>{{len .Images}}</b> 张</span>
-        {{if .Images}}{{with .Total}}<span class="stat">共 <b>{{.}}</b></span>{{end}}{{end}}
+        <span class="stat"><b>{{len .Images}}</b> {{t "张"}}</span>
+        {{if .Images}}{{with .Total}}<span class="stat">{{t "共"}} <b>{{.}}</b></span>{{end}}{{end}}
         {{with .Extra}}<span class="stat">{{.}}</span>{{end}}
       </div>
     </div>
     {{if .Images}}
     <div class="tools">
-      <div class="seg" role="group" aria-label="排列方式">
-        <button type="button" data-view="masonry" title="瀑布流"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="11" rx="2"/><rect x="13" y="3" width="8" height="7" rx="2"/><rect x="3" y="16" width="8" height="5" rx="2"/><rect x="13" y="12" width="8" height="9" rx="2"/></svg><span>瀑布流</span></button>
-        <button type="button" data-view="grid" title="网格"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>网格</span></button>
+      <div class="seg" role="group" aria-label="{{t "排列方式"}}">
+        <button type="button" data-view="masonry" title="{{t "瀑布流"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="11" rx="2"/><rect x="13" y="3" width="8" height="7" rx="2"/><rect x="3" y="16" width="8" height="5" rx="2"/><rect x="13" y="12" width="8" height="9" rx="2"/></svg><span>{{t "瀑布流"}}</span></button>
+        <button type="button" data-view="grid" title="{{t "网格"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span>{{t "网格"}}</span></button>
       </div>
-      <button type="button" class="btn btn-sm" id="selbtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>多选</button>
+      <button type="button" class="btn btn-sm" id="selbtn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg>{{t "多选"}}</button>
     </div>
     {{end}}
   </div>
 
   {{if .Groups}}
   <div class="datebar card rise rise-1">
-    <a class="arrow" href="/admin?d={{.Prev}}" title="前一天"{{if not .Prev}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
-    <select id="month" aria-label="选择月份">{{range .Groups}}<option value="{{.Key}}">{{.Label}}</option>{{end}}</select>
+    <a class="arrow" href="/admin?d={{.Prev}}" title="{{t "前一天"}}"{{if not .Prev}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <select id="month" aria-label="{{t "选择月份"}}">{{range .Groups}}<option value="{{.Key}}">{{monthLabel .Key}}</option>{{end}}</select>
     <div class="strip" id="strip">
-      {{range .Groups}}<div class="mdays" data-key="{{.Key}}">{{range .Days}}<a href="/admin?d={{.Value}}"{{if eq .Value $.Day}} class="on"{{end}} title="{{.Value}} · {{.Count}} 张"><b>{{.Num}}</b><small>{{.Count}} 张</small></a>{{end}}</div>{{end}}
+      {{range .Groups}}<div class="mdays" data-key="{{.Key}}">{{range .Days}}<a href="/admin?d={{.Value}}"{{if eq .Value $.Day}} class="on"{{end}} title="{{.Value}} · {{t "%d 张" .Count}}"><b>{{.Num}}</b><small>{{t "%d 张" .Count}}</small></a>{{end}}</div>{{end}}
     </div>
-    <a class="arrow" href="/admin?d={{.Next}}" title="后一天"{{if not .Next}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>
+    <a class="arrow" href="/admin?d={{.Next}}" title="{{t "后一天"}}"{{if not .Next}} aria-disabled="true"{{end}}><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></a>
   </div>
   {{end}}
 
@@ -143,16 +143,16 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   <div class="gallery masonry" id="gallery">
     {{range $i, $img := .Images}}
     <figure class="tile" style="animation-delay:{{if lt $i 20}}{{$i}}0ms{{else}}0ms{{end}}" data-url="{{.URL}}" data-file="{{.Name}}" data-rel="{{.Rel}}" data-time="{{.Time}}" data-size="{{.Size}}" data-dim="{{if .W}}{{.W}} × {{.H}}{{end}}">
-      <label class="pick"><input type="checkbox" value="{{.Rel}}" aria-label="选择 {{.Name}}"></label>
-      <button type="button" class="view" aria-label="查看大图"><img src="{{.URL}}" alt="" loading="lazy"{{if .W}} width="{{.W}}" height="{{.H}}"{{end}}></button>
+      <label class="pick"><input type="checkbox" value="{{.Rel}}" aria-label="{{t "选择 %s" .Name}}"></label>
+      <button type="button" class="view" aria-label="{{t "查看大图"}}"><img src="{{.URL}}" alt="" loading="lazy"{{if .W}} width="{{.W}}" height="{{.H}}"{{end}}></button>
       <div class="ov">
         <div class="ov-acts">
-          <button type="button" class="ib" data-copy="{{.URL}}" data-copy-msg="已复制链接" title="复制链接"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
-          <button type="button" class="ib md" data-copy="![]({{.URL}})" data-copy-msg="已复制 Markdown" title="复制 Markdown">MD</button>
-          <a class="ib" href="{{.URL}}" target="_blank" rel="noopener" title="新标签页打开"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
-          <form method="post" action="/admin/delete" onsubmit="return confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')">
+          <button type="button" class="ib" data-copy="{{.URL}}" data-copy-msg="{{t "已复制链接"}}" title="{{t "复制链接"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+          <button type="button" class="ib md" data-copy="![]({{.URL}})" data-copy-msg="{{t "已复制 Markdown"}}" title="{{t "复制 Markdown"}}">MD</button>
+          <a class="ib" href="{{.URL}}" target="_blank" rel="noopener" title="{{t "新标签页打开"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+          <form method="post" action="/admin/delete" onsubmit="return confirm({{t "确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。"}})">
             <input type="hidden" name="f" value="{{.Rel}}"><input type="hidden" name="back" class="back">
-            <button class="ib del" type="submit" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+            <button class="ib del" type="submit" title="{{t "删除"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
           </form>
         </div>
         <figcaption class="ov-info">
@@ -166,19 +166,19 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   {{else}}
   <div class="blank rise rise-2">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg>
-    <h3>这里还空着</h3>
-    <p>{{if .Day}}这一天没有图片。{{end}}去 <a href="/">上传页</a> 传几张吧。</p>
+    <h3>{{t "这里还空着"}}</h3>
+    <p>{{if .Day}}{{t "这一天没有图片。"}}{{end}}{{t "去"}} <a href="/">{{t "上传页"}}</a> {{t "传几张吧。"}}</p>
   </div>
   {{end}}
 </main>
 
-<div class="selbar" id="selbar" role="toolbar" aria-label="批量操作">
-  <span class="count" id="selcount">已选 0 张</span>
-  <button type="button" class="btn btn-sm" id="selall">全选</button>
-  <button type="button" class="btn btn-sm" id="selcopy">复制链接</button>
-  <button type="button" class="btn btn-sm" id="selmd">复制 Markdown</button>
-  <button type="button" class="btn btn-sm btn-danger" id="seldel">删除</button>
-  <button type="button" class="btn btn-sm" id="selexit">完成</button>
+<div class="selbar" id="selbar" role="toolbar" aria-label="{{t "批量操作"}}">
+  <span class="count" id="selcount">{{t "已选 %d 张" 0}}</span>
+  <button type="button" class="btn btn-sm" id="selall">{{t "全选"}}</button>
+  <button type="button" class="btn btn-sm" id="selcopy">{{t "复制链接"}}</button>
+  <button type="button" class="btn btn-sm" id="selmd">{{t "复制 Markdown"}}</button>
+  <button type="button" class="btn btn-sm btn-danger" id="seldel">{{t "删除"}}</button>
+  <button type="button" class="btn btn-sm" id="selexit">{{t "完成"}}</button>
 </div>
 <form method="post" action="/admin/delete" id="bulkdel" hidden><input type="hidden" name="back" class="back"></form>
 
@@ -186,22 +186,22 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   <div class="lb-in">
     <div class="lb-stage">
       <img id="lb-img" alt="">
-      <button type="button" class="lb-nav lb-prev" id="lb-prev" aria-label="上一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <button type="button" class="lb-nav lb-next" id="lb-next" aria-label="下一张"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button type="button" class="lb-nav lb-prev" id="lb-prev" aria-label="{{t "上一张"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" class="lb-nav lb-next" id="lb-next" aria-label="{{t "下一张"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>
     <div class="lb-side">
-      <div class="lb-top"><span class="lb-pos" id="lb-pos"></span><button type="button" class="btn btn-sm btn-ghost" id="lb-close">关闭 <kbd>Esc</kbd></button></div>
+      <div class="lb-top"><span class="lb-pos" id="lb-pos"></span><button type="button" class="btn btn-sm btn-ghost" id="lb-close">{{t "关闭"}} <kbd>Esc</kbd></button></div>
       <div class="lb-name" id="lb-name"></div>
-      <dl class="lb-meta"><dt>尺寸</dt><dd id="lb-dim"></dd><dt>大小</dt><dd id="lb-size"></dd><dt>上传</dt><dd id="lb-time"></dd></dl>
+      <dl class="lb-meta"><dt>{{t "尺寸"}}</dt><dd id="lb-dim"></dd><dt>{{t "大小"}}</dt><dd id="lb-size"></dd><dt>{{t "上传时间"}}</dt><dd id="lb-time"></dd></dl>
       <input type="text" class="input-mono" id="lb-url" readonly>
       <div class="lb-row">
-        <button type="button" class="btn btn-primary btn-sm" id="lb-copy">复制链接</button>
-        <button type="button" class="btn btn-sm" id="lb-md">复制 Markdown</button>
-        <a class="btn btn-sm" id="lb-open" target="_blank" rel="noopener">打开原图</a>
+        <button type="button" class="btn btn-primary btn-sm" id="lb-copy">{{t "复制链接"}}</button>
+        <button type="button" class="btn btn-sm" id="lb-md">{{t "复制 Markdown"}}</button>
+        <a class="btn btn-sm" id="lb-open" target="_blank" rel="noopener">{{t "打开原图"}}</a>
       </div>
       <form method="post" action="/admin/delete" id="lb-del" style="margin-top:auto">
         <input type="hidden" name="f" id="lb-f"><input type="hidden" name="back" class="back">
-        <button type="submit" class="btn btn-sm btn-danger">删除这张图片</button>
+        <button type="submit" class="btn btn-sm btn-danger">{{t "删除这张图片"}}</button>
       </form>
     </div>
   </div>
@@ -209,6 +209,14 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  var TX = {
+    selected: {{t "已选 %d 张"}}, all: {{t "全选"}}, none: {{t "取消全选"}},
+    copiedLinks: {{t "已复制 %d 条链接"}}, copiedMd: {{t "已复制 %d 条 Markdown"}},
+    delMany: {{t "确定删除选中的 %d 张图片？已贴出去的链接会失效（图片会移到回收目录）。"}},
+    delOne: {{t "确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。"}},
+    copiedLink: {{t "已复制链接"}}, copiedOneMd: {{t "已复制 Markdown"}}
+  };
+  function f(s, n) { return s.replace('%d', n); }
   // 删除后回到当前页面（去掉旧的提示信息参数）
   var qs = location.search.replace(/[?&]msg=[^&]*/g, '').replace(/^&/, '?');
   var back = location.pathname + qs;
@@ -232,12 +240,12 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
 
   // 排列方式，记住选择
   var view = 'masonry';
-  try { view = localStorage.getItem('picnook.view') || 'masonry'; } catch (e) {}
+  try { view = localStorage.getItem('picpier.view') || 'masonry'; } catch (e) {}
   function setView(v) {
     view = v === 'grid' ? 'grid' : 'masonry';
     gallery.className = 'gallery ' + view;
     document.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('on', b.dataset.view === view); });
-    try { localStorage.setItem('picnook.view', view); } catch (e) {}
+    try { localStorage.setItem('picpier.view', view); } catch (e) {}
   }
   document.querySelectorAll('[data-view]').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
   setView(view);
@@ -248,9 +256,9 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   function picked() { return tiles.filter(function (t) { return box(t).checked; }); }
   function refresh() {
     var n = picked().length;
-    $('selcount').textContent = '已选 ' + n + ' 张';
+    $('selcount').textContent = f(TX.selected, n);
     ['selcopy', 'selmd', 'seldel'].forEach(function (id) { $(id).disabled = n === 0; });
-    $('selall').textContent = n === tiles.length ? '取消全选' : '全选';
+    $('selall').textContent = n === tiles.length ? TX.none : TX.all;
     tiles.forEach(function (t) { t.classList.toggle('picked', box(t).checked); });
   }
   function setSelecting(on) {
@@ -268,17 +276,17 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   });
   gallery.addEventListener('change', function (e) { if (e.target.matches('.pick input')) refresh(); });
   $('selcopy').addEventListener('click', function () {
-    var p = picked(); copyText(p.map(function (t) { return t.dataset.url; }).join('\n'), '已复制 ' + p.length + ' 条链接');
+    var p = picked(); copyText(p.map(function (t) { return t.dataset.url; }).join('\n'), f(TX.copiedLinks, p.length));
   });
   $('selmd').addEventListener('click', function () {
-    var p = picked(); copyText(p.map(function (t) { return '![](' + t.dataset.url + ')'; }).join('\n'), '已复制 ' + p.length + ' 条 Markdown');
+    var p = picked(); copyText(p.map(function (t) { return '![](' + t.dataset.url + ')'; }).join('\n'), f(TX.copiedMd, p.length));
   });
   $('seldel').addEventListener('click', function () {
     var p = picked();
-    if (!p.length || !confirm('确定删除选中的 ' + p.length + ' 张图片？已贴出去的链接会失效（图片会移到回收目录）。')) return;
-    var f = $('bulkdel');
-    p.forEach(function (t) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'f'; i.value = t.dataset.rel; f.appendChild(i); });
-    f.submit();
+    if (!p.length || !confirm(f(TX.delMany, p.length))) return;
+    var form = $('bulkdel');
+    p.forEach(function (t) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'f'; i.value = t.dataset.rel; form.appendChild(i); });
+    form.submit();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && selecting && !$('lb').open) setSelecting(false); });
 
@@ -315,11 +323,11 @@ dialog.lb::backdrop{background:rgba(8,14,26,.78);backdrop-filter:blur(4px)}
   });
   $('lb-close').addEventListener('click', function () { lb.close(); });
   lb.addEventListener('click', function (e) { if (e.target === lb) lb.close(); });
-  $('lb-copy').addEventListener('click', function () { copyText($('lb-url').value, '已复制链接'); });
-  $('lb-md').addEventListener('click', function () { copyText('![](' + $('lb-url').value + ')', '已复制 Markdown'); });
+  $('lb-copy').addEventListener('click', function () { copyText($('lb-url').value, TX.copiedLink); });
+  $('lb-md').addEventListener('click', function () { copyText('![](' + $('lb-url').value + ')', TX.copiedOneMd); });
   $('lb-url').addEventListener('focus', function () { this.select(); });
   $('lb-del').addEventListener('submit', function (e) {
-    if (!confirm('确定删除这张图片？已贴出去的链接会失效（图片会移到回收目录）。')) e.preventDefault();
+    if (!confirm(TX.delOne)) e.preventDefault();
   });
 })();
 </script>

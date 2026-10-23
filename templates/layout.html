@@ -1,11 +1,12 @@
 {{define "head"}}<!doctype html>
-<html lang="zh-CN">
+<html lang="{{htmlLang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light dark">
-<title>{{.}} · PicNook</title>
+<title>{{t .}} · PicPier</title>
+<script>try{var m=localStorage.getItem('picpier.theme');if(m==='light'||m==='dark')document.documentElement.setAttribute('data-theme',m)}catch(e){}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V14a10 10 0 0 1 20 0v14z' fill='%232563eb'/%3E%3Cpath d='M10 24l4.5-6 3.5 4 2-2.5 3 4.5z' fill='%23fffdf8'/%3E%3Ccircle cx='19.5' cy='13.5' r='2' fill='%23fffdf8'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -18,13 +19,24 @@
   --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei","Noto Sans SC",sans-serif;
   --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei","Noto Sans SC",sans-serif;
   --mono:"JetBrains Mono","SF Mono","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
+/* 深色：手动选择深色，或跟随系统且系统是深色 */
+:root[data-theme=dark]{
   --paper:#0b1220;--paper-2:#121c2e;--card:#0f1829;--ink:#e6edf7;--ink-2:#c3cfe0;--muted:#8a9ab3;
   --line:#1d2a40;--line-2:#2a3a55;--accent:#4f8cff;--accent-2:#79a8ff;--accent-soft:#15254a;--on-accent:#ffffff;
   --ok:#4ade80;--ok-soft:#10301f;--danger:#f87171;--danger-soft:#3a1717;--warn:#fbbf24;--warn-soft:#352812;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.7);
   --shadow-lg:0 2px 4px rgba(0,0,0,.3),0 24px 48px -22px rgba(0,0,0,.85);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --paper:#0b1220;--paper-2:#121c2e;--card:#0f1829;--ink:#e6edf7;--ink-2:#c3cfe0;--muted:#8a9ab3;
+  --line:#1d2a40;--line-2:#2a3a55;--accent:#4f8cff;--accent-2:#79a8ff;--accent-soft:#15254a;--on-accent:#ffffff;
+  --ok:#4ade80;--ok-soft:#10301f;--danger:#f87171;--danger-soft:#3a1717;--warn:#fbbf24;--warn-soft:#352812;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -14px rgba(0,0,0,.7);
+  --shadow-lg:0 2px 4px rgba(0,0,0,.3),0 24px 48px -22px rgba(0,0,0,.85);
+  color-scheme:dark;
 }}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -49,9 +61,17 @@ code{background:var(--paper-2);border:1px solid var(--line);padding:1px 6px;bord
 .nav a,.nav button{position:relative;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;color:var(--ink-2);font:500 14px/1 var(--sans);background:none;border:0;cursor:pointer;transition:background .15s,color .15s}
 .nav svg{width:17px;height:17px;flex:none}
 .nav a:hover{background:var(--paper-2);color:var(--ink)}
-.nav button:hover{background:var(--danger-soft);color:var(--danger)}
+.nav button:hover{background:var(--paper-2);color:var(--ink)}
+.nav .logout:hover{background:var(--danger-soft);color:var(--danger)}
+.prefs{display:flex;gap:2px;align-items:center}
+.pref{display:inline-grid;place-items:center;min-width:36px;height:34px;padding:0 9px;border-radius:999px;border:0;background:none;color:var(--ink-2);font:650 12.5px/1 var(--sans);cursor:pointer;transition:background .15s,color .15s}
+.pref:hover{background:var(--paper-2);color:var(--ink)}
+.pref svg{width:17px;height:17px;display:none}
+.pref[data-mode=auto] .i-auto,.pref[data-mode=light] .i-light,.pref[data-mode=dark] .i-dark{display:block}
+.prefs-float{position:fixed;top:14px;right:16px;z-index:20;background:color-mix(in srgb,var(--card) 80%,transparent);border:1px solid var(--line);border-radius:999px;padding:3px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .nav a.on,.nav a.on:hover{background:var(--accent);color:var(--on-accent);box-shadow:0 4px 12px -4px color-mix(in srgb,var(--accent) 60%,transparent)}
-.nav form{margin:0 0 0 8px;padding-left:12px;border-left:1px solid var(--line)}
+.nav form{margin:0}
+.nav .sep{width:1px;height:22px;background:var(--line);margin:0 6px}
 
 /* 版心 */
 .wrap{max-width:1180px;margin:0 auto;padding:36px 24px 80px}
@@ -127,7 +147,8 @@ input[type=number]{width:110px}
   .topbar-in{padding:10px 16px;gap:10px}
   .brand span{display:none}
   .nav a,.nav button{padding:8px 10px}
-  .nav form{margin-left:2px;padding-left:6px}
+  .nav .sep{margin:0 2px}
+  .pref{min-width:32px;padding:0 6px}
   .wrap{padding:24px 16px 64px}
   .page-head h1{font-size:26px}
   .card{padding:18px}
@@ -139,15 +160,22 @@ input[type=number]{width:110px}
 
 {{define "brandmark"}}<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 28V14a10 10 0 0 1 20 0v14z" fill="var(--accent)"/><path d="M10 24l4.5-6 3.5 4 2-2.5 3 4.5z" fill="var(--card)"/><circle cx="19.5" cy="13.5" r="2" fill="var(--card)"/></svg>{{end}}
 
+{{define "prefs"}}<div class="prefs">
+  <button type="button" class="pref" data-theme-btn data-mode="auto" title="{{t "主题：跟随系统"}}" aria-label="{{t "主题：跟随系统"}}"><svg class="i-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor"/></svg><svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg><svg class="i-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></button>
+  <button type="button" class="pref" data-lang-btn data-next="{{if eq lang "en"}}zh{{else}}en{{end}}" title="{{t "切换到英文"}}">{{if eq lang "en"}}中{{else}}EN{{end}}</button>
+</div>{{end}}
+
 {{define "nav"}}
 <header class="topbar">
   <div class="topbar-in">
-    <a class="brand" href="/">{{template "brandmark"}}<span>Pic<em>Nook</em></span></a>
+    <a class="brand" href="/">{{template "brandmark"}}<span>Pic<em>Pier</em></span></a>
     <nav class="nav">
-      <a href="/" data-nav="/" title="上传"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg><span class="t">上传</span></a>
-      <a href="/admin" data-nav="/admin" title="图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg><span class="t">图片</span></a>
-      <a href="/admin/settings" data-nav="/admin/settings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="t">设置</span></a>
-      <form method="post" action="/logout"><button type="submit" title="退出"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l4-4-4-4M14 12H4"/></svg><span class="t">退出</span></button></form>
+      <a href="/" data-nav="/" title="{{t "上传"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg><span class="t">{{t "上传"}}</span></a>
+      <a href="/admin" data-nav="/admin" title="{{t "图片"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 15.5l-4.5-4.5L7 20"/></svg><span class="t">{{t "图片"}}</span></a>
+      <a href="/admin/settings" data-nav="/admin/settings" title="{{t "设置"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="t">{{t "设置"}}</span></a>
+      <span class="sep" aria-hidden="true"></span>
+      {{template "prefs"}}
+      <form method="post" action="/logout"><button type="submit" class="logout" title="{{t "退出"}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l4-4-4-4M14 12H4"/></svg><span class="t">{{t "退出"}}</span></button></form>
     </nav>
   </div>
 </header>
@@ -173,7 +201,7 @@ input[type=number]{width:110px}
     t = setTimeout(function () { el.classList.remove('show'); }, 1600);
   };
   window.copyText = function (text, msg) {
-    var done = function () { toast(msg || '已复制'); };
+    var done = function () { toast(msg || {{t "已复制"}}); };
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(done, fallback);
     } else { fallback(); }
@@ -181,13 +209,39 @@ input[type=number]{width:110px}
       var ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动复制'); }
+      try { document.execCommand('copy'); done(); } catch (e) { toast({{t "复制失败，请手动复制"}}); }
       ta.remove();
     }
   };
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-copy]');
     if (b) { e.preventDefault(); copyText(b.getAttribute('data-copy'), b.getAttribute('data-copy-msg')); }
+  });
+
+  // 主题：跟随系统 → 浅色 → 深色，保存在本地
+  var TL = { auto: {{t "主题：跟随系统"}}, light: {{t "主题：浅色"}}, dark: {{t "主题：深色"}} };
+  function theme() { try { return localStorage.getItem('picpier.theme') || 'auto'; } catch (e) { return 'auto'; } }
+  function applyTheme(m) {
+    if (m === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', m);
+    document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+      b.setAttribute('data-mode', m); b.title = TL[m]; b.setAttribute('aria-label', TL[m]);
+    });
+  }
+  applyTheme(theme());
+  document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var order = ['auto', 'light', 'dark'], m = order[(order.indexOf(theme()) + 1) % 3];
+      try { localStorage.setItem('picpier.theme', m); } catch (e) {}
+      applyTheme(m); toast(TL[m]);
+    });
+  });
+  // 语言：写入 cookie 后刷新
+  document.querySelectorAll('[data-lang-btn]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.cookie = 'lang=' + b.getAttribute('data-next') + '; path=/; max-age=31536000; samesite=lax';
+      location.reload();
+    });
   });
 })();
 </script>
