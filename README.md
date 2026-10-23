@@ -318,7 +318,10 @@ location / { proxy_pass http://127.0.0.1:18321; proxy_set_header Host $host; pro
 
 ### 防盗链
 
-防盗链由程序根据 `Referer` 判断，而上面的推荐配置让 Nginx 直接返回 `/i/` 下的图片，不经过程序，所以**在后台开启防盗链后，要把 `/i/` 也交给程序处理**：
+防盗链由程序根据 `Referer` 判断，所以图片请求必须经过 PicNook 才会生效：
+
+- **反向代理把所有请求都转给 PicNook**（Nginx Proxy Manager、Caddy、宝塔反代等的常见用法）：不需要任何修改，在后台开启即生效。
+- **按上面的推荐配置让 Nginx 直接返回 `/i/` 下的图片**：请求不经过 PicNook，需要把 `/i/` 也交给程序处理：
 
 ```nginx
 location ^~ /i/ {
@@ -328,7 +331,9 @@ location ^~ /i/ {
 }
 ```
 
-程序同样只输出图片扩展名的文件，不执行任何脚本。开启后响应会带 `Vary: Referer`；如果前面还有 CDN，需要确认 CDN 按 Referer 区分缓存，或者在 CDN 上配置防盗链。
+程序同样只输出图片扩展名的文件，不执行任何脚本。
+
+另外，反向代理或 CDN 的图片缓存（例如 Nginx Proxy Manager 的 Cache Assets）要关掉，否则缓存命中时请求不经过 PicNook，防盗链会被绕过。开启后响应会带 `Vary: Referer`；如果前面还有 CDN，需要确认 CDN 按 Referer 区分缓存，或者在 CDN 上配置防盗链。
 
 ### 跨域头只能有一个
 

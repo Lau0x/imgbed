@@ -201,7 +201,15 @@ td.date{color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:13px;whit
               </div>
             </div>
           </div>
-          <div class="notice notice-warn" style="margin:16px 0 0">如果按推荐配置让 Nginx 直接返回 /i/ 下的图片，这里的设置不会生效，需要把 /i/ 也交给 PicNook 处理，见 README 的"防盗链"一节。</div>
+          <div class="notice" style="margin:16px 0 0;display:block">
+            <strong>需要改反向代理吗？</strong>
+            <ul style="margin:6px 0 0;padding-left:18px">
+              <li>反向代理把所有请求都转给 PicNook（例如 Nginx Proxy Manager 的默认用法）：<b>不需要任何修改</b>，开启即生效。</li>
+              <li>让 Nginx 直接读取 /i/ 下的图片文件返回：请求到不了 PicNook，这里的设置不会生效，需要把 /i/ 也转给 PicNook，见 README 的"防盗链"一节。</li>
+              <li>反向代理或 CDN 开了图片缓存（例如 Nginx Proxy Manager 的 Cache Assets）：请关掉，否则缓存会绕过防盗链。</li>
+            </ul>
+            <div class="muted" style="margin-top:6px">开启前，记得把会引用图片的网站加进白名单，例如公众号排版工具、自己的博客。</div>
+          </div>
           <div class="foot"><button class="btn btn-primary" type="submit" data-anchor="hotlink">保存</button></div>
         </section>
       </form>
