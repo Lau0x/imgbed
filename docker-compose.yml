@@ -1,5 +1,6 @@
 # PicNook：https://github.com/Lau0x/picnook
-# 升级：docker compose pull && docker compose up -d（固定版本时先把 latest 改成新版本号）
+# 升级：docker compose pull && docker compose up -d
+# latest 始终是最新的正式版本；想固定版本就把 latest 改成具体版本号，例如 0.4.3
 
 # 固定项目名。放进 Docker 版 EasyImage 的原目录时，避免和旧的 easyimage 容器被当成同一个项目
 name: picnook

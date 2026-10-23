@@ -402,6 +402,26 @@ curl -H "Authorization: Bearer 你的token" -F image=@photo.jpg https://img.exam
 
 失败时 `result` 为 `failed`，`code` 含义：`202` token 错误、已过期或已禁用（具体原因见 `message`），`204` 没有文件，`400` 格式不支持或文件过大，`500` 服务器保存失败。
 
+## 升级
+
+Docker 镜像有三种标签：
+
+| 标签 | 含义 |
+| --- | --- |
+| `latest` | 最新的正式版本，推荐使用 |
+| `0.4.3` 这类版本号 | 固定在某个版本，升级时要手动改版本号 |
+| `edge` | main 分支的最新代码，可能包含还没发布的改动，不建议正式使用 |
+
+用 `latest` 时，在 `docker-compose.yml` 所在目录执行：
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+图片、设置和 token 都在挂载的目录里，升级不会丢。新版本有问题时，把 `latest` 改成之前的版本号再执行一次就能回退。每个版本的改动见 [Releases](https://github.com/Lau0x/picnook/releases)。
+
+直接运行（systemd）的话，从 Releases 下载新的程序文件替换 `/usr/local/bin/picnook`，再执行 `sudo systemctl restart picnook`。
+
 ## 配置项
 
 所有配置都可以用环境变量设置；直接运行时也可以用命令行参数，参数优先于环境变量。
