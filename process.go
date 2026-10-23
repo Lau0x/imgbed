@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/binary"
 	"errors"
 	"image"
@@ -22,6 +23,11 @@ import (
 	"golang.org/x/image/font/sfnt"
 	"golang.org/x/image/math/fixed"
 )
+
+// 默认水印字体：思源黑体（Noto Sans SC）粗体，截取了 GB2312 的 6763 个常用汉字和中西文符号，许可证见 fonts/OFL.txt
+//
+//go:embed fonts/NotoSansSC-Bold-GB2312.otf
+var defaultFont []byte
 
 // 超过这个像素数的图片不做处理，原样保存，防止超大尺寸图片把内存撑爆
 const maxProcessPixels = 40_000_000
@@ -231,7 +237,7 @@ func parseFont(b []byte) (*opentype.Font, error) {
 	return c.Font(0)
 }
 
-// loadFont 读取后台上传的字体；没有上传时用内置的 Go 字体（只含西文字符）
+// loadFont 读取后台上传的字体；没有上传时用内置的思源黑体常用字版本
 func (a *app) loadFont() {
 	f, custom := (*opentype.Font)(nil), false
 	if b, err := os.ReadFile(a.fontPath()); err == nil {
@@ -242,7 +248,12 @@ func (a *app) loadFont() {
 		}
 	}
 	if f == nil {
-		f, _ = opentype.Parse(goregular.TTF)
+		if parsed, err := opentype.Parse(defaultFont); err == nil {
+			f = parsed
+		} else {
+			log.Printf("内置水印字体无法解析，改用西文字体：%v", err)
+			f, _ = opentype.Parse(goregular.TTF)
+		}
 	}
 	a.fontMu.Lock()
 	a.font, a.fontCustom = f, custom

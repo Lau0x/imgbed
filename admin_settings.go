@@ -448,7 +448,7 @@ func (a *app) handleWatermarkPreview(w http.ResponseWriter, r *http.Request) {
 	img := image.NewNRGBA(image.Rect(0, 0, pw, ph))
 	for y := 0; y < ph; y++ {
 		for x := 0; x < pw; x++ {
-			v := uint8(70 + 150*x/pw)
+			v := uint8(215 - 150*x/pw) // 左浅右深，默认右下角的白色水印更容易看清
 			img.SetNRGBA(x, y, color.NRGBA{v, v + 10, v + 25, 255})
 		}
 	}

@@ -154,8 +154,12 @@ check "白图加上了水印" "$([ "$(probe "$U" | cut -d' ' -f3)" -gt 0 ] && ec
 U=$(api $W/fixtures/a.png $TOKEN | field url)
 check "小于 100 像素的图不加水印" "$(probe "$U")" "8x8 png 1"
 check "水印预览" "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' -b $J $B/admin/settings/preview)" "200 image/png"
-save "$BASESET&watermark=on&water_text=%E4%B8%AD%E6%96%87" >/dev/null
-check "内置字体缺中文时提示" "$(curl -s -b $J $B/admin/settings | grep -c '当前字体不包含')" 1
+save "$BASESET&watermark=on&water_text=%E4%B8%AD%E6%96%87%E6%B0%B4%E5%8D%B0" >/dev/null
+check "内置字体包含常用汉字" "$(curl -s -b $J $B/admin/settings | grep -c '当前字体不包含')" 0
+U=$(api $W/fixtures/white.png $TOKEN | field url)
+check "中文水印画到了图上" "$([ "$(probe "$U" | cut -d' ' -f3)" -gt 0 ] && echo yes)" yes
+save "$BASESET&watermark=on&water_text=%F0%AA%9A%A5" >/dev/null
+check "生僻字提示缺字" "$(curl -s -b $J $B/admin/settings | grep -c '当前字体不包含')" 1
 check "上传无效字体被拒" "$(curl -s -o /dev/null -w '%{redirect_url}' -b $J -H "$O" -F font=@$W/fixtures/font.ttf $B/admin/font | grep -c '%E5%AD%97%E4%BD%93%E6%97%A0%E6%B3%95%E8%AF%86%E5%88%AB')" 1
 save "$BASESET" >/dev/null
 U=$(api $W/fixtures/photo.jpg $TOKEN | field url)

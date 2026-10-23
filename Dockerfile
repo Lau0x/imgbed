@@ -6,6 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
 COPY templates ./templates
+COPY fonts ./fonts
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -tags nodynamic -trimpath -ldflags="-s -w" -o /out/picnook . \
     && mkdir -p /out/data/i /out/data/i-trash /out/data/config
 

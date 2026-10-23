@@ -361,7 +361,7 @@ curl -sI -H 'Origin: https://example.com' https://img.example.com/i/<任意一�
 | --- | --- |
 | 上传 | 单张大小上限。调大时 Nginx 的 `client_max_body_size` 也要跟着改 |
 | 压缩与格式 | 压缩质量推荐 80–90，肉眼基本看不出差别；可以把 JPG / PNG 统一转成 WebP。动图和超过 4000 万像素的图片原样保存；处理后反而变大时也保留原图 |
-| 水印 | 文字、九宫格位置、字号（占图片短边的百分比）、颜色、不透明度，带实时预览。内置字体只有英文，中文水印需要上传字体（如思源黑体 Noto Sans SC） |
+| 水印 | 文字、九宫格位置、字号（占图片短边的百分比）、颜色、不透明度，带实时预览。内置思源黑体粗体（GB2312 的 6763 个常用汉字），中文水印开箱即用；要用生僻字或换字体时可以上传 ttf / otf / ttc |
 | 防盗链 | Referer 白名单，`*.example.com` 匹配所有子域名；可选是否允许没有 Referer 的访问 |
 | API Token | 新增、修改有效期、禁用、删除；查看某个 token 上传的图片，一键删除它的全部上传；从 EasyImage 的 `api_key.php` 导入 |
 
@@ -468,3 +468,5 @@ docker build -t picnook .  # 构建镜像
 ## License
 
 [MIT](LICENSE)
+
+内置的水印字体 `fonts/NotoSansSC-Bold-GB2312.otf` 是从 [Noto Sans CJK](https://github.com/notofonts/noto-cjk)（思源黑体）SC 粗体中截取 GB2312 字符集得到的，遵循 [SIL Open Font License 1.1](fonts/OFL.txt)。

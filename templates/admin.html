@@ -6,7 +6,7 @@
 .days{position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;padding:14px 10px;scrollbar-width:thin}
 .days h4{font:600 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:2px 8px 12px}
 .days details{margin-bottom:2px}
-.days summary{list-style:none;cursor:pointer;padding:7px 8px;border-radius:8px;font:600 14px/1.2 var(--serif);display:flex;justify-content:space-between;align-items:center}
+.days summary{list-style:none;cursor:pointer;padding:7px 8px;border-radius:8px;font:600 14px/1.2 var(--display);display:flex;justify-content:space-between;align-items:center}
 .days summary::-webkit-details-marker{display:none}
 .days summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;margin-right:4px}
 .days details[open] summary::after{transform:rotate(45deg)}
@@ -34,9 +34,9 @@
 .blank h3{color:var(--ink);font-size:20px;margin-bottom:6px}
 
 dialog.lb{border:0;padding:0;background:transparent;max-width:min(1100px,94vw);width:100%;color:var(--ink)}
-dialog.lb::backdrop{background:rgba(18,14,10,.72);backdrop-filter:blur(4px)}
+dialog.lb::backdrop{background:rgba(8,14,26,.72);backdrop-filter:blur(4px)}
 .lb-in{background:var(--card);border-radius:calc(var(--radius) + 2px);overflow:hidden;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:1fr 300px}
-.lb-img{background:#0f0d0a repeating-conic-gradient(#1b1813 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:320px;max-height:82vh}
+.lb-img{background:#0a0f19 repeating-conic-gradient(#141c2a 0 25%,transparent 0 50%) 0 0/18px 18px;display:grid;place-items:center;min-height:320px;max-height:82vh}
 .lb-img img{max-width:100%;max-height:82vh;display:block}
 .lb-side{padding:22px;display:flex;flex-direction:column;gap:14px}
 .lb-side .lb-name{font:600 15px/1.4 var(--mono);word-break:break-all}
