@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gen2brain/webp"
@@ -373,11 +375,51 @@ func (a *app) trash(rel string) error {
 	if _, err := os.Lstat(dst); err == nil {
 		dst += "." + time.Now().Format("20060102150405")
 	}
-	if err := os.Rename(src, dst); err != nil {
+	if err := moveFile(src, dst); err != nil {
 		return err
 	}
 	log.Printf("已删除 %s（移至 %s）", rel, dst)
 	return nil
+}
+
+// moveFile 先尝试直接改名；图片目录和回收目录是两个挂载点（Docker 里常见）时改名会失败，改为复制后再删除原文件
+func moveFile(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err == nil || !errors.Is(err, syscall.EXDEV) {
+		return err
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	st, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(dst), ".trash-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	_, err = io.Copy(tmp, in)
+	if err == nil {
+		err = tmp.Sync()
+	}
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(tmp.Name(), st.Mode().Perm())
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), dst)
+	}
+	if err != nil {
+		return err
+	}
+	os.Chtimes(dst, st.ModTime(), st.ModTime())
+	return os.Remove(src)
 }
 
 func deleteMessage(err error) string {

@@ -16,7 +16,7 @@ FAILS=0
 
 start_server() {
   PICPIER_PASSWORD=testpass123 PICPIER_SECRET=0123456789abcdef0123456789abcdef PICPIER_TOKENS=$TOKEN \
-  PICPIER_LISTEN=127.0.0.1:$PORT PICPIER_IMAGES="$W/site/i" PICPIER_BASE="$B" PICPIER_EXTRA_DIRS="images=$W/site/images" \
+  PICPIER_LISTEN=127.0.0.1:$PORT PICPIER_IMAGES="$W/site/i" PICPIER_TRASH="${TRASH:-}" PICPIER_BASE="$B" PICPIER_EXTRA_DIRS="images=$W/site/images" \
     "$W/picpier" >> "$W/server.log" 2>&1 &
   PID=$!
   for _ in $(seq 50); do curl -s "$B/healthz" >/dev/null && break; sleep 0.1; done
@@ -248,6 +248,22 @@ check "后台页脚有项目链接和版本号" "$(curl -s -b $J3 $B/admin | gre
 check "登录页有项目链接" "$(curl -s $B/login | grep -c 'class="credit fixed"')" 1
 check "删除确认页不显示项目链接" "$(curl -s "$(api $W/fixtures/a.png $TOKEN | field del)" | grep -c 'class="credit')" 0
 check "启动日志带版本号" "$(grep -c 'picpier dev 监听' $W/server.log)" 2
+
+echo "== 回收目录在另一个文件系统 =="
+# Docker 里图片目录和回收目录是两个挂载点，不能直接改名，要复制后再删除
+if [ -d /dev/shm ] && [ "$(stat -c %d /dev/shm)" != "$(stat -c %d "$W")" ]; then
+  TRASH=$(mktemp -d -p /dev/shm)
+  kill $PID; wait $PID 2>/dev/null; start_server
+  J4="$W/cookies4.txt"; curl -s -o /dev/null -c $J4 -H "$O" -d password=testpass123 $B/login
+  REL=$(api $W/fixtures/a.png $TOKEN | field url | sed "s#^$B/i/##")
+  curl -s -o /dev/null -b $J4 -H "$O" -d "f=$REL" $B/admin/delete
+  check "跨文件系统删除后图片不可访问" "$(code "$B/i/$REL")" 404
+  check "跨文件系统删除后在回收目录" "$(cmp -s "$TRASH/$REL" $W/fixtures/a.png && echo yes)" yes
+  check "跨文件系统删除不留临时文件" "$(find "$TRASH" -name '.trash-*' | wc -l)" 0
+  rm -rf "$TRASH"
+else
+  echo "SKIP  没有可用的 /dev/shm，跳过跨文件系统删除测试"
+fi
 
 echo "== 健康检查 =="
 check "healthcheck 子命令" "$(PICPIER_LISTEN=127.0.0.1:$PORT "$W/picpier" healthcheck; echo $?)" 0
